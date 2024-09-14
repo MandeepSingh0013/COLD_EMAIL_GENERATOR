@@ -2,6 +2,9 @@
 USING GROQ API CREATING COLD EMAIL 
 ![image](https://github.com/user-attachments/assets/d0d9c18e-94b9-40aa-97f8-172d5b814e66)
 
+![d6834be4-7863-4a94-ae2a-6a2372f37729](https://github.com/user-attachments/assets/b4821b0d-51da-41ad-b73a-0294b825badb)
+
+
 
 📧 Cold Mail Generator
   
