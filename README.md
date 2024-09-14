@@ -3,7 +3,6 @@ USING GROQ API CREATING COLD EMAIL
 ![image](https://github.com/user-attachments/assets/d0d9c18e-94b9-40aa-97f8-172d5b814e66)
 
 
-
 📧 Cold Mail Generator
   
   This project is a Cold Mail Generator that leverages LLMs (Large Language Models) to extract job descriptions 
@@ -77,3 +76,7 @@ To run evaluations, you can follow the steps below:
 
 📄 License
 This project is licensed under the MIT License.
+
+Reference: 
+  https://www.youtube.com/watch?v=CO4E_9V6li0
+  https://github.com/codebasics/project-genai-cold-email-generator.git
