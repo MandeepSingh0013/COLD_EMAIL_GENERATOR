@@ -18,6 +18,7 @@ class Portfolio:
             return "success"
         else:
             return "error"
+        
     def load_portfolio(self):
         if not self.collection.count():
             # Load a pre-trained model

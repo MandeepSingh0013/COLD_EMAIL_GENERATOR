@@ -46,10 +46,6 @@ class Chain:
         else:
             raise ValueError("Unknown model name")
 
-
-
-
-
     #Extracting JD in JSON form using LLM
     def extract_jobs(self,model_name,cleaned_text):
         llm = self.get_model(model_name)
@@ -99,6 +95,47 @@ class Chain:
         res = chain_email.invoke({"job_description":str(job),"link_list":links})
         return res.content
     
+
+    def write_mail_with_translation(self, model_name, job, links, language):
+        llm = self.get_model(model_name)  # Get the LLM based on the model name
+
+        # Unified prompt that generates the email and optionally translates it
+        prompt_email_translate = PromptTemplate.from_template(
+            """
+            ### JOB DESCRIPTION:
+            {job_description}
+
+            ### INSTRUCTION:
+            You are Mandeep, a business development executive at MSpace. MSpace is an AI & Software Consulting company dedicated to facilitating
+            the seamless integration of business processes through automated tools. 
+            Over our experience, we have empowered numerous enterprises with tailored solutions, fostering scalability, 
+            process optimization, cost reduction, and heightened overall efficiency. 
+            Your job is to write a cold email to the client regarding the job mentioned above describing the capability of MSpace 
+            in fulfilling their needs.
+            Also, add the most relevant ones from the following links to showcase MSpace's portfolio: {link_list}
+            Remember you are Mandeep, BDE at MSpace.
+            Do not provide a preamble.
+
+            After writing the email in English, translate it into {target_language}.
+            If the target language is English, no translation is needed.
+
+            ### EMAIL (IN ENGLISH AND THEN TRANSLATED TO {target_language} IF NEEDED):
+            """
+        )
+        
+        # Invoke the LLM with both job and language context
+        chain_email_translate = prompt_email_translate | llm
+        res = chain_email_translate.invoke({
+            "job_description": str(job), 
+            "link_list": links, 
+            "target_language": language
+        })
+
+        return res.content
+
+
+
+
     #Creating Translation using LLM
     def translate_text(self, model_name, email, language):
         llm = self.get_model(model_name)  # Get the LLM based on the model name
