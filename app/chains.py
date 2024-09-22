@@ -34,7 +34,8 @@ class Chain:
             timeout=None,
             max_retries=2
         )
-        # Select which model to use
+    
+    # Select which model to use
     def get_model(self, model_name):
         if model_name == "LLama":
             return self.llm_llama
@@ -86,7 +87,7 @@ class Chain:
             the seamless integration of business processes through automated tools. 
             Over our experience, we have empowered numerous enterprises with tailored solutions, fostering scalability, 
             process optimization, cost reduction, and heightened overall efficiency. 
-            Your job is to write a cold email to the client regarding the job mentioned above describing the capability of AtliQ 
+            Your job is to write a cold email to the client regarding the job mentioned above describing the capability of MSpace 
             in fulfilling their needs.
             Also add the most relevant ones from the following links to showcase MSpace's portfolio: {link_list}
             Remember you are Mandeep, BDE at MSpace. 
@@ -96,4 +97,24 @@ class Chain:
         )
         chain_email= prompt_email | llm
         res = chain_email.invoke({"job_description":str(job),"link_list":links})
+        return res.content
+    
+    #Creating Translation using LLM
+    def translate_text(self, model_name, email, language):
+        llm = self.get_model(model_name)  # Get the LLM based on the model name
+        prompt_translate = PromptTemplate.from_template(
+            """
+            ### EMAIL TO TRANSLATE:
+            {email_content}
+
+            ### INSTRUCTION:
+            You are a multilingual language expert. Your job is to translate the email content provided above into {target_language}.
+            Ensure the tone and context remain professional and formal.
+            
+            ### TRANSLATED EMAIL (NO PREAMBLE):
+            """
+        )
+        # Creating the prompt with target language
+        chain_translate = prompt_translate | llm
+        res = chain_translate.invoke({"email_content": str(email), "target_language": language})
         return res.content
