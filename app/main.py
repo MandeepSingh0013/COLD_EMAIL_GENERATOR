@@ -26,6 +26,7 @@ class ColdMailGenerator:
         self.chain = Chain()
 
     def run(self):
+        """ Main method to run the Streamlit app """
         self.create_streamlit_app()
 
     def create_streamlit_app(self):
@@ -34,18 +35,8 @@ class ColdMailGenerator:
         # Initialize session state
         self.init_session_state()
 
-        
-        
-        # Get user details: Full Name, Designation, Company Name
-        st.header("User Details")
-        st.session_state.full_name = st.text_input("Enter your full name:", placeholder="Mandeep Singh")
-        st.session_state.designation = st.text_input("Enter your designation:", placeholder="AI Engineer")
-        st.session_state.company_name = st.text_input("Enter your company name:", placeholder="MSpace")
-
-        if not st.session_state.company_name or not st.session_state.designation or not st.session_state.company_name:
-            st.warning("Please provide your full name, designation, and company name.")
-        else:
-            st.success("User details collected successfully!")
+        # Capture user input details: Full Name, Designation, and Company Name
+        self.get_user_details()
 
         col1, col2, col3 = st.columns(3)
         
@@ -63,29 +54,38 @@ class ColdMailGenerator:
 
         # Job URL Input
         self.url_input()
-
         # Show Submit Button if both conditions are met
         if st.session_state.url_valid and st.session_state.status == "success":
             self.show_submit_button()
-            
 
+        # Checkbox to opt for generating the cover note
+        self.cover_note_option()
+      
+    def get_user_details(self):
+        # Get user details: Full Name, Designation, Company Name
+        st.header("User Details")
+        st.session_state.full_name = st.text_input("Enter your full name:", placeholder="Mandeep Singh")
+        st.session_state.designation = st.text_input("Enter your designation:", placeholder="AI Engineer")
+        st.session_state.company_name = st.text_input("Enter your company name:", placeholder="MSpace")
+
+        if not st.session_state.company_name or not st.session_state.designation or not st.session_state.company_name:
+            st.warning("Please provide your full name, designation, and company name.")
+        else:
+            st.success("User details collected successfully!")
 
     def init_session_state(self):
         if 'email' not in st.session_state:
             st.session_state.email = ""
-            # st.session_state.language_translate = True
         if 'status' not in st.session_state:
             st.session_state.status = ""
         if 'url_valid' not in st.session_state:
             st.session_state.url_valid = False
-        
         if 'full_name' not in st.session_state:
             st.session_state.full_name=""
         if  'designation' not in st.session_state:
             st.session_state.designation=""
         if 'company_name' not in st.session_state:
             st.session_state.company_name=""
-        
 
     def select_llm(self):
         st.subheader("Select LLM Model")
@@ -115,10 +115,9 @@ class ColdMailGenerator:
 
     def url_input(self):
         st.session_state.url_input = st.text_input("Enter a Job URL", placeholder="https://jobs.nike.com/job/R-37070?from=job%20search%20funnel")
-        st.session_state.company_url = st.text_input("Enter Company 'About Us' URL", placeholder="https://example.com/about-us")
     
-        if st.session_state.url_input and st.session_state.company_url :
-            if is_valid_url(st.session_state.url_input) and is_valid_url(st.session_state.company_url):
+        if st.session_state.url_input:
+            if is_valid_url(st.session_state.url_input):
                 st.session_state.url_valid = True
                 st.success("Valid URL")
             else:
@@ -127,6 +126,21 @@ class ColdMailGenerator:
         else:
             st.session_state.url_valid = False
             st.warning("Please enter a job URL.")
+
+    def cover_note_option(self):
+        """Allow user to opt for generating a cover note and provide company 'About Us' URL."""
+        st.subheader("Cover Note Option")
+        st.session_state.generate_cover_note = st.checkbox("Generate Cover Note")
+        
+        if st.session_state.generate_cover_note:
+            st.session_state.company_url = st.text_input("Enter Company 'About Us' URL", placeholder="https://example.com/about-us")
+            if st.session_state.company_url:
+                if is_valid_url(st.session_state.company_url):
+                    st.success("Valid Company URL")
+                else:
+                    st.error("Invalid 'About Us' URL format.")
+            else:
+                st.warning("Please enter the 'About Us' URL if you want to generate a cover note.")
 
     def show_submit_button(self):
         submit_button = st.button("Submit")
