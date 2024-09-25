@@ -42,11 +42,11 @@ class ColdMailGenerator:
         
         # Column 1: LLM Selection Radio Button
         with col1:
-            self.select_llm()
+             self.temp_model_choice = self.select_llm()
 
         # Column 2: Language Selection
         with col2:
-            self.select_language()
+            self.temp_language_choice = self.select_language()
 
         # Column 3: Portfolio CSV Upload
         with col3:
@@ -54,12 +54,24 @@ class ColdMailGenerator:
 
         # Job URL Input
         self.url_input()
+
         # Show Submit Button if both conditions are met
-        if st.session_state.url_valid and st.session_state.status == "success":
+        if st.session_state.url_valid and st.session_state.status == "success" and st.session_state.full_name and st.session_state.designation:
             self.show_submit_button()
 
+
+        self.display_generated_email()
+        
         # Checkbox to opt for generating the cover note
         self.cover_note_option()
+         
+        #Show Generate cover note button 
+        if st.session_state.generate_cover_note and st.session_state.company_url_valid:
+            self.show_cover_note_button()
+       
+        self.display_generated_cover_note()
+        
+        
       
     def get_user_details(self):
         # Get user details: Full Name, Designation, Company Name
@@ -86,14 +98,30 @@ class ColdMailGenerator:
             st.session_state.designation=""
         if 'company_name' not in st.session_state:
             st.session_state.company_name=""
-
+        if 'generate_cover_note' not in st.session_state:
+            st.session_state.generate_cover_note = False
+        if 'company_url' not in st.session_state:
+            st.session_state.company_url = ""
+        if 'cover_note' not in st.session_state:
+            st.session_state.cover_note = ""
+        if "company_url_valid" not in st.session_state:
+            st.session_state.company_url_valid=False
+        # if "email_generated" not in st.session_state:
+            # st.session_state.email_generated=False
+        st.session_state.setdefault('model_choice', "")
+        st.session_state.setdefault('selected_language', "")
+        st.session_state.setdefault('cover_note_generated', False)
+        st.session_state.setdefault('jobs','')
+    
     def select_llm(self):
         st.subheader("Select LLM Model")
-        self.model_choice=st.radio("Select the LLM model:", ("LLama", "Gemma", "Mixtral"), index=0)
+        # self.model_choice=st.radio("Select the LLM model:", ("LLama", "Gemma", "Mixtral"), index=0)
+        return st.radio("Select the LLM model:", ("LLama", "Gemma", "Mixtral"), index=0)
 
     def select_language(self):
         st.subheader("Select Language")
-        self.selected_language = st.radio("Choose the target language:", ("English", "French", "Spanish", "German"))
+        # self.selected_language = st.radio("Choose the target language:", ("English", "French", "Spanish", "German"))
+        return st.radio("Choose the target language:", ("English", "French", "Spanish", "German"))
 
     def upload_portfolio_csv(self):
         st.subheader("Upload Portfolio CSV")
@@ -136,6 +164,7 @@ class ColdMailGenerator:
             st.session_state.company_url = st.text_input("Enter Company 'About Us' URL", placeholder="https://example.com/about-us")
             if st.session_state.company_url:
                 if is_valid_url(st.session_state.company_url):
+                    st.session_state.company_url_valid = True
                     st.success("Valid Company URL")
                 else:
                     st.error("Invalid 'About Us' URL format.")
@@ -145,26 +174,75 @@ class ColdMailGenerator:
     def show_submit_button(self):
         submit_button = st.button("Submit")
         if submit_button:
+            st.session_state.model_choice = self.temp_model_choice  # Save model choice only when clicked
+            st.session_state.selected_language = self.temp_language_choice
             self.process_submission()
+
+    def show_cover_note_button(self):
+        if st.button("Generate Cover Note"):
+        # if st.session_state.generate_cover_note and st.button("Generate Cover Note") and st.session_state.company_url_valid :
+                self.process_cover_note_submission()
 
     def process_submission(self):
         with st.spinner('Generating the cold email...'):
             try:
                 loader = WebBaseLoader([st.session_state.url_input])  # Use the stored URL input value
                 data = clean_text(loader.load().pop().page_content)
+                # Load portfolio and extract jobs
                 self.portfolio.load_portfolio()
-            
-                jobs = self.chain.extract_jobs(self.model_choice, data)
-                for job in jobs:
+                # Generate email for each job extracted
+                st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
+                for job in st.session_state.jobs:
                     skills = job.get('skills', [])
                     links = self.portfolio.query_links(skills)
-                    st.session_state.email = self.chain.write_mail_with_translation(self.model_choice, job, links, 
-                                                                                    self.selected_language,st.session_state.full_name, st.session_state.designation, st.session_state.company_name)
-                    st.subheader(f"Email Generated in ({self.selected_language}) by ({self.model_choice}) model")
-                    st.code(st.session_state.email, language="markdown")
-                    
+                    st.session_state.email = self.chain.write_mail_with_translation(st.session_state.model_choice, job, links, 
+                                                                                    st.session_state.selected_language,st.session_state.full_name, 
+                                                                                    st.session_state.designation, st.session_state.company_name)
+                    # st.subheader(f"Email Generated in ({self.selected_language}) by ({self.model_choice}) model")
+                    # st.code(st.session_state.email, language="markdown")
+                    # Store email in session state to persist
+                    # self.model_selected_to_show=self.model_choice
+                    # self.selected_language_to_show=self.selected_language
+                    st.session_state.email_generated = True
+                   
             except Exception as e:
                 st.error(f"An Error Occurred: {e}")
+       
+    def display_generated_email(self):
+        """Display the generated email if it exists in session state."""
+        if st.session_state.get("email_generated", False):
+            st.subheader(f"Generated Cold Email ({st.session_state.model_choice}, {st.session_state.selected_language}):")
+            st.code(st.session_state.email, language="markdown")
+
+    def process_cover_note_submission(self):
+        """Process the cover note submission."""
+        with st.spinner('Generating the cover note...'):
+            try:
+                # Load the 'About Us' page content from the provided URL
+                loader_about_us = WebBaseLoader([st.session_state.company_url])
+                about_us_data = clean_text(loader_about_us.load().pop().page_content)
+                for job in st.session_state.jobs:
+                    # Generate the cover note aligned with the job description
+                    st.session_state.cover_note = self.chain.write_cover_note(
+                        st.session_state.model_choice,
+                        st.session_state.full_name, 
+                        st.session_state.designation, 
+                        st.session_state.company_name,
+                        about_us_data,
+                        job,
+                        st.session_state.selected_language
+
+                    )
+                    st.session_state.cover_note_generated = True    
+            except Exception as e:
+                st.error(f"An Error Occurred: {e}")
+
+    def display_generated_cover_note(self):
+        # """Display the generated cover note if it exists in session state."""
+        if st.session_state.get("cover_note_generated", False):
+            st.subheader(f"Generated Cover Note ({st.session_state.model_choice}, {st.session_state.selected_language}):")
+            with st.expander("Cover Note"):
+                st.write(st.session_state.cover_note)
 
 if __name__ == "__main__":
     app = ColdMailGenerator()
