@@ -9,3 +9,4 @@ selenium==4.21.0
 bs4
 sentence-transformers
 tenacity
+pysqlite3-binary
