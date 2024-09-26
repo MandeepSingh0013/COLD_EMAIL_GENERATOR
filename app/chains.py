@@ -4,6 +4,12 @@ from langchain_core.output_parsers import JsonOutputParser #To pass the Json dat
 from langchain_core.exceptions import OutputParserException # 
 from dotenv import load_dotenv #Load Environment veriable
 import os #Load the data from system
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import logging
+# Initialize a logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -70,32 +76,6 @@ class Chain:
             raise OutputParserException("Context too big. Unable to parse jobs.")
         return res if isinstance(res,list) else [res]
     
-    #Creating MAIL using LLM
-    # def write_mail(self,model_name,job,links):
-    #     llm = self.get_model(model_name)
-    #     prompt_email = PromptTemplate.from_template(
-    #         """
-    #         ### JOB DESCRIPTION:
-    #         {job_description}
-
-    #         ### INSTRUCTION:
-    #         You are Mandeep, a business development executive at MSpace. MSpace is an AI & Software Consulting company dedicated to facilitating
-    #         the seamless integration of business processes through automated tools. 
-    #         Over our experience, we have empowered numerous enterprises with tailored solutions, fostering scalability, 
-    #         process optimization, cost reduction, and heightened overall efficiency. 
-    #         Your job is to write a cold email to the client regarding the job mentioned above describing the capability of MSpace 
-    #         in fulfilling their needs.
-    #         Also add the most relevant ones from the following links to showcase MSpace's portfolio: {link_list}
-    #         Remember you are Mandeep, BDE at MSpace. 
-    #         Do not provide a preamble.
-    #         ### EMAIL (NO PREAMBLE):
-    #         """
-    #     )
-    #     chain_email= prompt_email | llm
-    #     res = chain_email.invoke({"job_description":str(job),"link_list":links})
-    #     return res.content
-    
-
     def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name):
         llm = self.get_model(model_name)  # Get the LLM based on the model name
 
@@ -136,7 +116,12 @@ class Chain:
         })
 
         return res.content
-
+    
+    @retry(
+        stop=stop_after_attempt(5),  # Retry up to 5 times
+        wait=wait_exponential(multiplier=0.1, min=0.2, max=60),  # Exponential backoff starting at 200ms
+        retry=retry_if_exception_type(Exception)  # Retry only on rate limit error (429)
+    )
     def write_cover_note(self, model_name, full_name, designation, company_name, about_us_text, job, target_language):
         llm = self.get_model(model_name)  # Get the LLM based on the selection
 
@@ -177,28 +162,11 @@ class Chain:
                 "job_description": job,
                 "target_language": target_language
             })
+            # Log the success for tracking
+            logger.info(f"Cover note successfully generated for {company_name} targeting job: {job.get('title', 'Unknown')}")
+
             return res.content
         except Exception as e:
-                
+            logger.error(f"An unexpected error occurred: {e}")
             return f"An error occurred while generating the cover note: {e}"
 
-
-    # #Creating Translation using LLM
-    # def translate_text(self, model_name, email, language):
-    #     llm = self.get_model(model_name)  # Get the LLM based on the model name
-    #     prompt_translate = PromptTemplate.from_template(
-    #         """
-    #         ### EMAIL TO TRANSLATE:
-    #         {email_content}
-
-    #         ### INSTRUCTION:
-    #         You are a multilingual language expert. Your job is to translate the email content provided above into {target_language}.
-    #         Ensure the tone and context remain professional and formal.
-            
-    #         ### TRANSLATED EMAIL (NO PREAMBLE):
-    #         """
-    #     )
-    #     # Creating the prompt with target language
-    #     chain_translate = prompt_translate | llm
-    #     res = chain_translate.invoke({"email_content": str(email), "target_language": language})
-    #     return res.content

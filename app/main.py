@@ -224,13 +224,13 @@ class ColdMailGenerator:
                 for job in st.session_state.jobs:
                     # Generate the cover note aligned with the job description
                     st.session_state.cover_note = self.chain.write_cover_note(
-                        st.session_state.model_choice,
+                        self.temp_model_choice, #st.session_state.model_choice,
                         st.session_state.full_name, 
                         st.session_state.designation, 
                         st.session_state.company_name,
                         about_us_data,
                         job,
-                        st.session_state.selected_language
+                        self.temp_language_choice#st.session_state.selected_language
 
                     )
                     st.session_state.cover_note_generated = True    
