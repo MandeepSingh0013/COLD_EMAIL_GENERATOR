@@ -1,14 +1,15 @@
-__import__('pysqlite3')
+# __import__('pysqlite3')
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 import re
 
 from chains import Chain
 from portfolio import Portfolio
-from utils import clean_text 
-
+from utils import clean_text , clean_portfolio_text
+from file_handler import FileHandler
+import pandas as pd
 
 
 # Function to validate URL
@@ -27,6 +28,7 @@ class ColdMailGenerator:
     def __init__(self):
         self.portfolio = Portfolio()
         self.chain = Chain()
+        self.file_handler = FileHandler()
 
     def run(self):
         """ Main method to run the Streamlit app """
@@ -55,24 +57,33 @@ class ColdMailGenerator:
         with col3:
             self.upload_portfolio_csv()
 
+        # Checkbox to opt for generating the cover note
+        # self.cover_note_option()
+        self.about_us_input()
+        
         # Job URL Input
         self.url_input()
 
+        col4,col5=st.columns(2)
         # Show Submit Button if both conditions are met
-        if st.session_state.url_valid and st.session_state.status == "success" and st.session_state.full_name and st.session_state.designation:
-            self.show_submit_button()
+        if st.session_state.url_valid and st.session_state.full_name and st.session_state.designation and st.session_state.company_name:#and st.session_state.status == "success" and st.session_state.full_name and st.session_state.designation:
+            with col4:
+                self.show_submit_button()
+                self.display_generated_email()
+            with col5:
+                self.show_cover_note_button()
+                self.display_generated_cover_note()
 
 
-        self.display_generated_email()
+        # self.display_generated_email()
         
-        # Checkbox to opt for generating the cover note
-        self.cover_note_option()
+        
          
         #Show Generate cover note button 
-        if st.session_state.generate_cover_note and st.session_state.company_url_valid:
-            self.show_cover_note_button()
+        # if st.session_state.generate_cover_note and st.session_state.company_url_valid:
+            # self.show_cover_note_button()
        
-        self.display_generated_cover_note()
+        # self.display_generated_cover_note()
         
         
       
@@ -115,6 +126,8 @@ class ColdMailGenerator:
         st.session_state.setdefault('selected_language', "")
         st.session_state.setdefault('cover_note_generated', False)
         st.session_state.setdefault('jobs','')
+        st.session_state.setdefault('techstack_link','')
+        st.session_state.setdefault("aboutus_url_valid",False)
     
     def select_llm(self):
         st.subheader("Select LLM Model")
@@ -127,55 +140,75 @@ class ColdMailGenerator:
         return st.radio("Choose the target language:", ("English", "French", "Spanish", "German"))
 
     def upload_portfolio_csv(self):
-        st.subheader("Upload Portfolio CSV")
-        st.write("Please upload a CSV with the following structure:")
-        st.code('''"Techstack","Links"\n"React, Node.js, MongoDB","https://example.com/react-portfolio"\n...''')
-
-        uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+        st.subheader("Upload Portfolio File")
+        uploaded_file = st.file_uploader("Choose a file", type=["csv","pdf","docx","xlsx"])
         if uploaded_file:
             try:
-                st.session_state.status = self.portfolio.load_csv(uploaded_file)
+                # st.session_state.status= self.portfolio.load_csv(uploaded_file)
+                st.session_state.status, portfolio_data= self.file_handler.process_file(uploaded_file)
                 if st.session_state.status == "success":
-                    st.success("CSV Uploaded and Validated Successfully!")
+                    st.success("File Uploaded and Validated Successfully!")
+                    with st.spinner("Processing the portfolio data..."):
+                        cleaned_data=clean_portfolio_text(portfolio_data)
+                        st.session_state.techstack_link=self.chain.extract_portfolio_data(self.temp_model_choice, cleaned_data)
+                        df = pd.DataFrame(st.session_state.techstack_link)
+                        # Load portfolio and extract jobs
+                        self.portfolio.load_portfolio(df)
+                        st.dataframe(df)
+
+
                 else:
-                    st.error("Invalid CSV format. Please ensure the file contains 'Techstack' and 'Links' columns.")
+                    st.error("Invalid file format or content. Please check the file.")
             except Exception as e:
                 st.error(f"Error reading the CSV file: {e}")
         else:
             st.info("Please upload a CSV file to proceed.")
 
+    def about_us_input(self):
+        st.session_state.aboutus_url= st.text_input("Enter About Us URL", placeholder="https://www.infosys.com/about.html")
+        if st.session_state.aboutus_url:
+            if is_valid_url(st.session_state.aboutus_url):
+                st.session_state.aboutus_url_valid=True
+                st.success("Valid URL")
+            else:
+                st.session_state.aboutus_url_valid = False
+                st.error("Invalid URL format. Please enter a valid URL.")
+        else:
+           st.warning("Enter the 'About Us' URL if you want to add more information")
+
     def url_input(self):
-        st.session_state.url_input = st.text_input("Enter a Job URL", placeholder="https://jobs.nike.com/job/R-37070?from=job%20search%20funnel")
+        st.session_state.url_input = st.text_input("Enter A Job URL", placeholder="https://jobs.nike.com/job/R-37070?from=job%20search%20funnel")
     
         if st.session_state.url_input:
             if is_valid_url(st.session_state.url_input):
                 st.session_state.url_valid = True
                 st.success("Valid URL")
+                
             else:
                 st.session_state.url_valid = False
-                st.error("Invalid URL format. Please enter a valid URL.")
+                st.error("Invalid 'About Us' URL format.")
         else:
             st.session_state.url_valid = False
             st.warning("Please enter a job URL.")
 
-    def cover_note_option(self):
-        """Allow user to opt for generating a cover note and provide company 'About Us' URL."""
-        st.subheader("Cover Note Option")
-        st.session_state.generate_cover_note = st.checkbox("Generate Cover Note")
+    # def cover_note_option(self):
+    #     # """Allow user to opt for generating a cover note and provide company 'About Us' URL."""
+    #     # st.subheader("Cover Note Option")
+    #     # st.session_state.generate_cover_note = st.checkbox("Generate Cover Note")
         
-        if st.session_state.generate_cover_note:
-            st.session_state.company_url = st.text_input("Enter Company 'About Us' URL", placeholder="https://example.com/about-us")
-            if st.session_state.company_url:
-                if is_valid_url(st.session_state.company_url):
-                    st.session_state.company_url_valid = True
-                    st.success("Valid Company URL")
-                else:
-                    st.error("Invalid 'About Us' URL format.")
-            else:
-                st.warning("Please enter the 'About Us' URL if you want to generate a cover note.")
+    #     # if st.session_state.generate_cover_note:
+    #         # st.session_state.company_url = st.text_input("Enter Company 'About Us' URL", placeholder="https://example.com/about-us")
+    #         if st.session_state.company_url:
+    #             if is_valid_url(st.session_state.company_url):
+    #                 st.session_state.company_url_valid = True
+    #                 st.success("Valid Company URL")
+    #             else:
+    #                 st.error("Invalid 'About Us' URL format.")
+    #         else:
+    #             st.warning("Please enter the 'About Us' URL if you want to generate a cover note.")
 
     def show_submit_button(self):
-        submit_button = st.button("Submit")
+        submit_button = st.button("Generate Mail")
         if submit_button:
             st.session_state.model_choice = self.temp_model_choice  # Save model choice only when clicked
             st.session_state.selected_language = self.temp_language_choice
@@ -184,28 +217,31 @@ class ColdMailGenerator:
     def show_cover_note_button(self):
         if st.button("Generate Cover Note"):
         # if st.session_state.generate_cover_note and st.button("Generate Cover Note") and st.session_state.company_url_valid :
-                self.process_cover_note_submission()
+            self.process_cover_note_submission()
 
     def process_submission(self):
         with st.spinner('Generating the cold email...'):
             try:
                 loader = WebBaseLoader([st.session_state.url_input])  # Use the stored URL input value
                 data = clean_text(loader.load().pop().page_content)
-                # Load portfolio and extract jobs
-                self.portfolio.load_portfolio()
+                if st.session_state.aboutus_url_valid:
+                    about_us_loader = WebBaseLoader([st.session_state.aboutus_url])  # Use the stored URL input value
+                    about_us_data = clean_text(about_us_loader.load().pop().page_content)
+                    about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
+                    
+                else: 
+                    about_us_data=[]
+                # # Load portfolio and extract jobs
+                # self.portfolio.load_portfolio()
                 # Generate email for each job extracted
                 st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
                 for job in st.session_state.jobs:
                     skills = job.get('skills', [])
-                    links = self.portfolio.query_links(skills)
+                    
+                    links = self.portfolio.query_links(skills) if st.session_state.status == "success" else []
                     st.session_state.email = self.chain.write_mail_with_translation(st.session_state.model_choice, job, links, 
                                                                                     st.session_state.selected_language,st.session_state.full_name, 
-                                                                                    st.session_state.designation, st.session_state.company_name)
-                    # st.subheader(f"Email Generated in ({self.selected_language}) by ({self.model_choice}) model")
-                    # st.code(st.session_state.email, language="markdown")
-                    # Store email in session state to persist
-                    # self.model_selected_to_show=self.model_choice
-                    # self.selected_language_to_show=self.selected_language
+                                                                                    st.session_state.designation, st.session_state.company_name,about_us_data,[])
                     st.session_state.email_generated = True
                    
             except Exception as e:
@@ -219,26 +255,29 @@ class ColdMailGenerator:
 
     def process_cover_note_submission(self):
         """Process the cover note submission."""
-        with st.spinner('Generating the cover note...'):
-            try:
-                # Load the 'About Us' page content from the provided URL
-                loader_about_us = WebBaseLoader([st.session_state.company_url])
-                about_us_data = clean_text(loader_about_us.load().pop().page_content)
-                for job in st.session_state.jobs:
-                    # Generate the cover note aligned with the job description
-                    st.session_state.cover_note = self.chain.write_cover_note(
-                        self.temp_model_choice, #st.session_state.model_choice,
-                        st.session_state.full_name, 
-                        st.session_state.designation, 
-                        st.session_state.company_name,
-                        about_us_data,
-                        job,
-                        self.temp_language_choice#st.session_state.selected_language
+        if st.session_state.aboutus_url_valid:
+            with st.spinner('Generating the cover note...'):
+                try:
+                    # Load the 'About Us' page content from the provided URL
+                    loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
+                    about_us_data = clean_text(loader_about_us.load().pop().page_content)
+                    for job in st.session_state.jobs:
+                        # Generate the cover note aligned with the job description
+                        st.session_state.cover_note = self.chain.write_cover_note(
+                            self.temp_model_choice, #st.session_state.model_choice,
+                            st.session_state.full_name, 
+                            st.session_state.designation, 
+                            st.session_state.company_name,
+                            about_us_data,
+                            job,
+                            self.temp_language_choice#st.session_state.selected_language
 
-                    )
-                    st.session_state.cover_note_generated = True    
-            except Exception as e:
-                st.error(f"An Error Occurred: {e}")
+                        )
+                        st.session_state.cover_note_generated = True    
+                except Exception as e:
+                    st.error(f"An Error Occurred: {e}")
+        else:
+            st.error("Enter About Us URL")
 
     def display_generated_cover_note(self):
         # """Display the generated cover note if it exists in session state."""

@@ -15,3 +15,12 @@ def clean_text(text):
     text = ' '.join(text.split())
     return text
     
+def clean_portfolio_text(text):
+    """
+    Cleans the input text by removing special characters, extra spaces, and normalizing the format.
+    """
+    # Remove unwanted characters and normalize text
+    text = re.sub(r'[^\w\s,.:/]', '', text)  # Remove special characters except common punctuation
+    text = re.sub(r'\s+', ' ', text)  # Remove extra spaces
+    text = text.strip()  # Trim leading and trailing spaces
+    return text
