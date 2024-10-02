@@ -12,3 +12,4 @@ tenacity
 pysqlite3-binary
 PyPDF2
 python-docx
+openpyxl
