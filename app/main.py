@@ -171,7 +171,7 @@ class ColdMailGenerator:
                 st.success("Valid URL")
             else:
                 st.session_state.aboutus_url_valid = False
-                st.error("Invalid URL format. Please enter a valid URL.")
+                st.error("Invalid About US URL format. Please enter a valid URL.")
         else:
            st.warning("Enter the 'About Us' URL if you want to add more information")
 
@@ -185,7 +185,7 @@ class ColdMailGenerator:
                 
             else:
                 st.session_state.url_valid = False
-                st.error("Invalid 'About Us' URL format.")
+                st.error("Invalid Target Job URL format.")
         else:
             st.session_state.url_valid = False
             st.warning("Please enter a job URL.")
