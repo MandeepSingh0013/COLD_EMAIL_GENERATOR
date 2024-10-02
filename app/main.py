@@ -57,7 +57,8 @@ class ColdMailGenerator:
         with col3:
             self.upload_portfolio_csv()
 
-        # Checkbox to opt for generating the cover note
+        self.add_instructions_input_box()
+        
         # self.cover_note_option()
         self.about_us_input()
         
@@ -127,6 +128,7 @@ class ColdMailGenerator:
         st.session_state.setdefault('jobs','')
         st.session_state.setdefault('techstack_link','')
         st.session_state.setdefault("aboutus_url_valid",False)
+        st.session_state.setdefault("special_instructions","")
     
     def select_llm(self):
         st.subheader("Select LLM Model")
@@ -162,6 +164,9 @@ class ColdMailGenerator:
                 st.error(f"Error reading the CSV file: {e}")
         else:
             st.info("Please upload a CSV file to proceed.")
+
+    def add_instructions_input_box():
+        st.session_state.special_instructions = st.text_area("Enter any special instructions or notes (optional)")
 
     def about_us_input(self):
         st.session_state.aboutus_url= st.text_input("Enter About Us URL", placeholder="https://www.infosys.com/about.html")
@@ -230,6 +235,7 @@ class ColdMailGenerator:
                     
                 else: 
                     about_us_data=[]
+                special_instuction =  st.session_state.special_instructions if st.session_state.special_instructions else []
                 # # Load portfolio and extract jobs
                 # self.portfolio.load_portfolio()
                 # Generate email for each job extracted
@@ -240,7 +246,7 @@ class ColdMailGenerator:
                     links = self.portfolio.query_links(skills) if st.session_state.status == "success" else []
                     st.session_state.email = self.chain.write_mail_with_translation(st.session_state.model_choice, job, links, 
                                                                                     st.session_state.selected_language,st.session_state.full_name, 
-                                                                                    st.session_state.designation, st.session_state.company_name,about_us_data,[])
+                                                                                    st.session_state.designation, st.session_state.company_name,about_us_data,special_instuction)
                     st.session_state.email_generated = True
                    
             except Exception as e:
