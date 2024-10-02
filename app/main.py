@@ -73,9 +73,9 @@ class ColdMailGenerator:
                 self.show_cover_note_button()
                
         col6,col7=st.columns(2)
-        with col5:
-            self.display_generated_email()
         with col6:
+            self.display_generated_email()
+        with col7:
             self.display_generated_cover_note()
          
         #Show Generate cover note button 
