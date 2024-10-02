@@ -165,7 +165,7 @@ class ColdMailGenerator:
         else:
             st.info("Please upload a CSV file to proceed.")
 
-    def add_instructions_input_box():
+    def add_instructions_input_box(self):
         st.session_state.special_instructions = st.text_area("Enter any special instructions or notes (optional)")
 
     def about_us_input(self):
