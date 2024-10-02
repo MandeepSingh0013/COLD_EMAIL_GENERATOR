@@ -9,6 +9,6 @@ selenium==4.21.0
 bs4
 sentence-transformers
 tenacity
-# pysqlite3-binary
+pysqlite3-binary
 PyPDF2
 python-docx
