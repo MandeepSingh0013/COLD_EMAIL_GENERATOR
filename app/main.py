@@ -69,21 +69,20 @@ class ColdMailGenerator:
         if st.session_state.url_valid and st.session_state.full_name and st.session_state.designation and st.session_state.company_name:#and st.session_state.status == "success" and st.session_state.full_name and st.session_state.designation:
             with col4:
                 self.show_submit_button()
-                self.display_generated_email()
             with col5:
                 self.show_cover_note_button()
-                self.display_generated_cover_note()
-
-
-        # self.display_generated_email()
-        
-        
+               
+        col6,col7=st.columns(2)
+        with col5:
+            self.display_generated_email()
+        with col6:
+            self.display_generated_cover_note()
          
         #Show Generate cover note button 
         # if st.session_state.generate_cover_note and st.session_state.company_url_valid:
             # self.show_cover_note_button()
        
-        # self.display_generated_cover_note()
+    
         
         
       
