@@ -28,7 +28,6 @@ class FileHandler:
         text = ""
         for page in reader.pages:
             text += page.extract_text()
-        # You can customize parsing based on how your PDF is structured
         return "success", text
 
     def process_word(self, file):

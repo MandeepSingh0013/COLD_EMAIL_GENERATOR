@@ -9,8 +9,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 import logging
 import re
 # Initialize a logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -78,81 +78,44 @@ class Chain:
             raise OutputParserException("Context too big. Unable to parse jobs.")
         return res if isinstance(res,list) else [res]
     
-    # def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name):
-        # llm = self.get_model(model_name)  # Get the LLM based on the model name
-
-        # # Unified prompt that generates the email and optionally translates it
-        # prompt_email_translate = PromptTemplate.from_template(
-        # """
-        # ### JOB DESCRIPTION:
-        # {job_description}
-
-        # ### INSTRUCTION:
-        # You are {full_name}, a {designation} at {company_name}. {company_name} is an AI & Software Consulting company dedicated to 
-        # facilitating the seamless integration of business processes through automated tools. 
-        # Over our experience, we have empowered numerous enterprises with tailored solutions, fostering scalability, 
-        # process optimization, cost reduction, and heightened overall efficiency. 
-        # Your job is to write a cold email to the client regarding the job mentioned above describing the capability of {company_name} 
-        # in fulfilling their needs.
-        # Also, add the most relevant ones from the following links to showcase {company_name}'s portfolio: {link_list}
-        # Remember you are {full_name}, {designation} at {company_name}.
-        # Do not provide a preamble.
-
-        # After writing the email in English, translate it into {target_language}.
-        # If the target language is English, no translation is needed.
-
-        # ### EMAIL (IN ENGLISH AND THEN TRANSLATED TO {target_language} IF NEEDED):
-    #     """
-    # )
-        
-    #     # Invoke the LLM with both job and language context
-    #     chain_email_translate = prompt_email_translate | llm
-    #     # Invoke the chain with the dynamic inputs
-    #     res = chain_email_translate.invoke({
-    #         "job_description": str(job),
-    #         "link_list": links,
-    #         "target_language": language,
-    #         "full_name": full_name,
-    #         "designation": designation,
-    #         "company_name": company_name
-    #     })
-
-    #     return res.content
     
     @retry(
         stop=stop_after_attempt(5),  # Retry up to 5 times
         wait=wait_exponential(multiplier=0.1, min=0.2, max=60),  # Exponential backoff starting at 200ms
         retry=retry_if_exception_type(Exception)  # Retry only on rate limit error (429)
     )
-    def write_cover_note(self, model_name, full_name, designation, company_name, about_us_text, job, target_language):
+    def write_cover_note(self, model_name, full_name, designation, company_name, about_us_text,target_language,tone,job=None):
         llm = self.get_model(model_name)  # Get the LLM based on the selection
+        # Prepare the job description section if provided
+        job_description_section = f"### JOB DESCRIPTION:\n{job}\n" if job else ""
 
         # Prompt template for generating the cover note
         prompt_cover_note = PromptTemplate.from_template(
-            """
-            ### ABOUT US (Service Provider):
-            {about_us}
+        f"""
+        ### ABOUT US (Service Provider):
+        {about_us_text}
 
-            ### JOB DESCRIPTION:
-            {job_description}
+        {job_description_section}
 
-            ### INSTRUCTION:
-            You are {full_name}, {designation} at {company_name}. Your company specializes in providing services as described in the 'ABOUT US' section above. 
-            You are writing a professional cover note to pitch your services to a potential client based on the job description provided.
-            
-            
-            The goal is to explain how {company_name}'s expertise can help fulfill the client's needs for this job role. 
-            Align {company_name}'s strengths with the requirements of the job and emphasize relevant skills, experience, and solutions.
-            
-            Ensure that the note is concise, relevant, and to the point. If there isn't enough data in the 'ABOUT US' section or the job description, 
-            avoid adding irrelevant or fabricated information.
+        ### INSTRUCTION:
+        You are {full_name}, {designation} at {company_name}. Your company specializes in providing services as described in the 'ABOUT US' section above. 
+        You are writing a professional cover note to pitch your services to a potential client based on the details provided.
 
-            After writing the cover note in English, translate it into {target_language}.
-            If the target language is English, no translation is needed.
+        The goal is to explain how {company_name}'s expertise can help fulfill the client's needs.
+        Align {company_name}'s strengths with the client's potential needs and emphasize relevant skills, experience, and solutions.
 
-            ### COVER NOTE (IN ENGLISH AND TRANSLATED TO {target_language} IF NEEDED):
-            """
-        )
+        Write the cover note in a {tone} tone to match the desired communication style.
+
+        Ensure that the note is concise, relevant, and to the point. If there isn't enough data in the 'ABOUT US' section or the job description, 
+        avoid adding irrelevant or fabricated information.
+
+        After writing the cover note in English, translate it into {target_language}.
+        If the target language is English, no translation is needed.
+
+        ### COVER NOTE (IN ENGLISH AND TRANSLATED TO {target_language} IF NEEDED):
+    """
+    )
+
         try:
             # Invoke the LLM with both job and language context
             chain_cover_note = prompt_cover_note | llm
@@ -163,20 +126,18 @@ class Chain:
                 "company_name": company_name,
                 "about_us": about_us_text,
                 "job_description": job,
-                "target_language": target_language
+                "target_language": target_language,
+                "tone": tone
             })
-            # Log the success for tracking
-            logger.info(f"Cover note successfully generated for {company_name} targeting job: {job.get('title', 'Unknown')}")
-
             return res.content
         except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
             return f"An error occurred while generating the cover note: {e}"
     
     def extract_portfolio_data(self, model_name, cleaned_text):
 
         # Get the LLM model
         llm = self.get_model(model_name) 
+    
             # Define the prompt for extracting tech stacks and links
         prompt_extract = PromptTemplate.from_template(
             """
@@ -214,7 +175,6 @@ class Chain:
 
         return result if isinstance(result, list) else [result]
     
-
     def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name, about_us=None, comments=None):
         llm = self.get_model(model_name)  # Get the LLM based on the model name
 
@@ -308,4 +268,3 @@ class Chain:
         # res = summarize.invoke({
         #     "about_us_text":about_us_text
         # })
-
