@@ -297,7 +297,7 @@ class ColdMailGenerator:
                 # Fetch and clean 'About Us' data from the URL
                 loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
                 about_us_data = clean_text(loader_about_us.load().pop().page_content)
-                about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
+                # about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
 
                 # Generate cover note based on job descriptions, if available
                 if st.session_state.jobs:
