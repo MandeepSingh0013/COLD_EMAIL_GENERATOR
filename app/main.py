@@ -10,7 +10,6 @@ from portfolio import Portfolio
 from utils import clean_text , clean_portfolio_text
 from file_handler import FileHandler
 import pandas as pd
-import hashlib
 
 # Function to validate URL
 def is_valid_url(url):
@@ -196,7 +195,7 @@ class ColdMailGenerator:
              # Set submitted state to True to reset the form
             st.session_state.submitted = True
              # Force a rerun to display the form in its initial state
-            st.experimental_rerun()
+            # st.experimental_rerun()
         
     def add_instructions_input_box(self):
         st.session_state.special_instructions = st.text_area("Enter Any Special Instructions Or What Are You Offering (Optional)",max_chars=250)
