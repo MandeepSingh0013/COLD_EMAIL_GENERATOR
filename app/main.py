@@ -1,6 +1,6 @@
-# __import__('pysqlite3')
+__import__('pysqlite3')
 import sys
-# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 import re
@@ -10,7 +10,7 @@ from portfolio import Portfolio
 from utils import clean_text , clean_portfolio_text
 from file_handler import FileHandler
 import pandas as pd
-
+import hashlib
 
 # Function to validate URL
 def is_valid_url(url):
@@ -136,7 +136,6 @@ class ColdMailGenerator:
         uploaded_file = st.file_uploader("Choose a file", type=["csv","pdf","docx","xlsx"])
         if uploaded_file:
             try:
-                # st.session_state.status= self.portfolio.load_csv(uploaded_file)
                 st.session_state.status, portfolio_data= self.file_handler.process_file(uploaded_file)
                 if st.session_state.status == "success":
                     st.success("File Uploaded and Validated Successfully!")
@@ -145,6 +144,7 @@ class ColdMailGenerator:
                         st.session_state.techstack_link=self.chain.extract_portfolio_data(self.temp_model_choice, cleaned_data)
                         df = pd.DataFrame(st.session_state.techstack_link)
                         # Load portfolio and extract jobs
+
                         self.portfolio.load_portfolio(df)
                         st.dataframe(df)
                     self.feedback_portfolio_icon(st.session_state.techstack_link, cleaned_data)
@@ -199,7 +199,7 @@ class ColdMailGenerator:
             st.experimental_rerun()
         
     def add_instructions_input_box(self):
-        st.session_state.special_instructions = st.text_area("Enter any special instructions or notes (optional)")
+        st.session_state.special_instructions = st.text_area("Enter Any Special Instructions Or What Are You Offering (Optional)",max_chars=250)
 
     def about_us_input(self):
         st.session_state.aboutus_url= st.text_input("Enter Your URL ", placeholder="Your About Us/Linkdin URL To Generate Cover Letter")#"https://www.infosys.com/about.html")
@@ -209,7 +209,7 @@ class ColdMailGenerator:
                 st.success("Valid URL")
             else:
                 st.session_state.aboutus_url_valid = False
-                st.error("Invalid About US URL format. Please enter a valid URL.")
+                st.error("Invalid About US URL format. Please Enter A Valid URL.")
         else:
            st.warning("Enter the 'About Us' URL if you want to add more information")
 
@@ -247,28 +247,32 @@ class ColdMailGenerator:
     def process_submission(self):
         with st.spinner('Generating the cold email...'):
             try:
-                loader = WebBaseLoader([st.session_state.url_input])  # Use the stored URL input value
-                data = clean_text(loader.load().pop().page_content)
-                if st.session_state.aboutus_url_valid:
-                    about_us_loader = WebBaseLoader([st.session_state.aboutus_url])  # Use the stored URL input value
-                    about_us_data = clean_text(about_us_loader.load().pop().page_content)
-                    about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
-                    
-                else: 
-                    about_us_data=[]
-                special_instuction =  st.session_state.special_instructions if st.session_state.special_instructions else []
-                # Load portfolio and extract jobs
-                # Generate email for each job extracted
-                st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
-                for job in st.session_state.jobs:
-                    skills = job.get('skills', [])
-                    
-                    links = self.portfolio.query_links(skills) if st.session_state.status == "success" else []
-                    st.session_state.email = self.chain.write_mail_with_translation(st.session_state.model_choice, job, links, 
-                                                                                    st.session_state.selected_language,st.session_state.full_name, 
-                                                                                    st.session_state.designation, st.session_state.company_name,about_us_data,special_instuction)
-                    st.session_state.email_generated = True
-                   
+                loader = WebBaseLoader([st.session_state.url_input])
+                #If data Scraped from the Web
+                if loader:
+                    data = clean_text(loader.load().pop().page_content)
+                    if st.session_state.aboutus_url_valid:
+                        about_us_loader = WebBaseLoader([st.session_state.aboutus_url])  # Use the stored URL input value
+                        about_us_data = clean_text(about_us_loader.load().pop().page_content)
+                        about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
+                        
+                    else: 
+                        about_us_data=[]
+                    special_instuction =  st.session_state.special_instructions if st.session_state.special_instructions else []
+                    # Load portfolio and extract jobs
+                    # Generate email for each job extracted
+                    st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
+                    for job in st.session_state.jobs:
+                        skills = job.get('skills', [])
+                        
+                        links = self.portfolio.query_links(skills) #if st.session_state.status == "success" else []
+                        st.session_state.email = self.chain.write_mail_with_translation(st.session_state.model_choice, job, links, 
+                                                                                        st.session_state.selected_language,st.session_state.full_name, 
+                                                                                        st.session_state.designation, st.session_state.company_name,about_us_data,
+                                                                                        special_instuction,st.session_state.tone)
+                        st.session_state.email_generated = True
+                else:
+                    st.error("No Data Available, Try Another URL")  
             except Exception as e:
                 st.error(f"An Error Occurred: {e}")
     
@@ -297,6 +301,7 @@ class ColdMailGenerator:
 
                 # Generate cover note based on job descriptions, if available
                 if st.session_state.jobs:
+
                     for job in st.session_state.jobs:
                         st.session_state.cover_note = self.chain.write_cover_note(
                             self.temp_model_choice,  # Temporary model choice
@@ -306,7 +311,7 @@ class ColdMailGenerator:
                             about_us_data,
                             self.temp_language_choice,  # Temporary language choice
                             st.session_state.tone,
-                            job_description=job  # Pass the job description
+                            job  # Pass the job description
                         )
                 else:
                     # Generate cover note without a job description

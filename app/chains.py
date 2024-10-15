@@ -87,7 +87,31 @@ class Chain:
     def write_cover_note(self, model_name, full_name, designation, company_name, about_us_text,target_language,tone,job=None):
         llm = self.get_model(model_name)  # Get the LLM based on the selection
         # Prepare the job description section if provided
-        job_description_section = f"### JOB DESCRIPTION:\n{job}\n" if job else ""
+        # job_description_section = f"### JOB DESCRIPTION:\n{job}\n" if job else ""
+        # Prepare the job description section if provided
+        job_description_section = ""
+        if job:
+            job_role = job.get("role", "")
+            job_experience = job.get("experience", "")
+            job_skills = ", ".join(job.get("skills", []))
+            job_description = job.get("description", "")
+            
+            job_description_section = f"""
+            ### JOB ROLE:
+            {job_role}
+
+            ### REQUIRED EXPERIENCE:
+            {job_experience}
+
+            ### REQUIRED SKILLS:
+            {job_skills}
+
+            ### JOB DESCRIPTION:
+            {job_description}
+            """
+
+
+
 
         # Prompt template for generating the cover note
         prompt_cover_note = PromptTemplate.from_template(
@@ -152,8 +176,8 @@ class Chain:
             The portfolio could be from an individual or a company. It may be related to applying for a job or offering services. Ensure that your output is accurate and concise.
 
             Ensure the data is structured as an array of objects, where each object has the following keys:
-            - "techstack": A string representing the technologies used (e.g., React, Node.js, MongoDB).
-            - `links`: A valid URL showcasing the portfolio.
+            - "Techstack": A string representing the technologies used (e.g., React, Node.js, MongoDB).
+            - `Links`: A valid URL showcasing the portfolio.
 
             Please ensure the output is a valid JSON without any additional text or commentary.
 
@@ -175,7 +199,7 @@ class Chain:
 
         return result if isinstance(result, list) else [result]
     
-    def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name, about_us=None, comments=None):
+    def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name,tone, about_us=None, comments=None):
         llm = self.get_model(model_name)  # Get the LLM based on the model name
 
         # Define the base company description
@@ -203,7 +227,7 @@ class Chain:
             highlighting {company_name}'s capabilities tofulfilling their needs.
             Optionally, include relevant portfolio links to showcase {company_name}'s work: {link_list}
 
-
+            The email should be written in a {tone} tone to match the desired communication style (e.g., formal, friendly, persuasive).
             
             Ensure the email is professional, concise, and aligned with the job description. Avoid irrelevant or fabricated details.
             
@@ -225,7 +249,8 @@ class Chain:
             "target_language": language,
             "full_name": full_name,
             "designation": designation,
-            "company_name": company_name
+            "company_name": company_name,
+            "tone": tone 
         })
 
         return res.content
@@ -261,10 +286,4 @@ class Chain:
         
         except Exception as e:
             return f"An error occurred during summarization: {e}", []
-     
-        
-        # # Query relevant links from the portfolio based on skills
-        # summarize = prompt_summarize|llm
-        # res = summarize.invoke({
-        #     "about_us_text":about_us_text
-        # })
+    
