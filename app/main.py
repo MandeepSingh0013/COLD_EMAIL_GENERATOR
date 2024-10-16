@@ -10,6 +10,7 @@ from portfolio import Portfolio
 from utils import clean_text , clean_portfolio_text
 from file_handler import FileHandler
 import pandas as pd
+from email_file import EmailApp
 
 # Function to validate URL
 def is_valid_url(url):
@@ -84,7 +85,9 @@ class ColdMailGenerator:
             self.display_generated_email()
         with col7:
             self.display_generated_cover_note()
-              
+
+        self.email_app() 
+
     def get_user_details(self):
         # Get user details: Full Name, Designation, Company Name
         st.header("User Details")
@@ -337,6 +340,12 @@ class ColdMailGenerator:
             st.subheader(f"Generated Cover Note ")#({st.session_state.model_choice}, {st.session_state.selected_language}):")
             with st.expander("Cover Note"):
                 st.write(st.session_state.cover_note)
+
+    def email_app(self):
+        email = EmailApp()
+        email.display_form()
+
+
 
 if __name__ == "__main__":
     app = ColdMailGenerator()
