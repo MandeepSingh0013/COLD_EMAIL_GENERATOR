@@ -1,6 +1,6 @@
 import streamlit as st
-from app.login_page import check_login
-from app.main import ColdMailGenerator
+from login_page import check_login
+from main import ColdMailGenerator
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in= False
