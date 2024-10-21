@@ -26,17 +26,15 @@ def logout():
 
 def coldEmail():
     if st.session_state.logged_in:
-        app=ColdMailGenerator()
-        app.run()
+        pass
+        # app=ColdMailGenerator()
+        # app.run()
 
 login_page = st.Page(login, title="Log in", icon=":material/login:",default=True)
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 dashboard = st.Page(
     coldEmail, title="Dashboard", icon=":material/mail:", default=True
 )
-
-
-
 
 if st.session_state.logged_in:
     pg = st.navigation(
