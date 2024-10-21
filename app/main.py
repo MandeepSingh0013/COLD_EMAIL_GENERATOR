@@ -1,16 +1,17 @@
-__import__('pysqlite3')
+# __import__('pysqlite3')
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 import re
-
-from chains import Chain
-from portfolio import Portfolio
-from utils import clean_text , clean_portfolio_text
-from file_handler import FileHandler
+from app.chains import Chain
+from app.portfolio import Portfolio
+from app.utils import clean_text , clean_portfolio_text
+from app.file_handler import FileHandler
 import pandas as pd
-from email_file import EmailApp
+from app.email_file import EmailApp
+# from app.login_page import check_login
+
 
 # Function to validate URL
 def is_valid_url(url):
@@ -32,9 +33,11 @@ class ColdMailGenerator:
 
     def run(self):
         """ Main method to run the Streamlit app """
+        
         self.create_streamlit_app()
 
     def create_streamlit_app(self):
+        
         st.title("📧 Cold Mail Generator")
         
         # Initialize session state
@@ -347,7 +350,7 @@ class ColdMailGenerator:
 
 
 
-if __name__ == "__main__":
-    app = ColdMailGenerator()
-    st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")
-    app.run()
+# if __name__ == "__main__":
+app = ColdMailGenerator()
+# st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")
+app.run()
