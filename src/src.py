@@ -1,6 +1,14 @@
+import sys
+import os
+
+# Get the directory containing src.py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Add the parent directory to sys.path
+sys.path.append(os.path.join(current_dir, '..'))
 import streamlit as st
-from login_page import check_login
-from main import ColdMailGenerator
+from app.login_page import check_login
+from app.main import ColdMailGenerator
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in= False
