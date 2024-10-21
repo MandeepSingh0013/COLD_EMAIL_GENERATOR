@@ -1,5 +1,6 @@
 import streamlit as st
 from app.login_page import check_login
+from app.main import ColdMailGenerator
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in= False
@@ -15,10 +16,14 @@ def logout():
         st.session_state.logged_in = False
         st.rerun()
 
+def coldEmail():
+    app=ColdMailGenerator()
+    app.run()
+
 login_page = st.Page(login, title="Log in", icon=":material/login:",default=True)
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 dashboard = st.Page(
-    "app/main.py", title="Dashboard", icon=":material/dashboard:", default=True
+    coldEmail, title="Dashboard", icon=":material/mail:", default=True
 )
 
 

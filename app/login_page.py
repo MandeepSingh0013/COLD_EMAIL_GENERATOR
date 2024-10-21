@@ -131,5 +131,5 @@ def check_login():
         # cold_email_app = ColdEmailGeneratorApp(st.session_state['user'])
         # cold_email_app.show_user_options()
 
-# if __name__ == "__main__":
-check_login()
+if __name__ == "__main__":
+    check_login()
