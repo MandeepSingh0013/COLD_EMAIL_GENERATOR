@@ -4,12 +4,12 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 import re
-from chains import Chain
-from portfolio import Portfolio
-from utils import clean_text , clean_portfolio_text
-from file_handler import FileHandler
+from aap.chains import Chain
+from aap.portfolio import Portfolio
+from aap.utils import clean_text , clean_portfolio_text
+from aap.file_handler import FileHandler
 import pandas as pd
-from email_file import EmailApp
+from aap.email_file import EmailApp
 # from app.login_page import check_login
 
 

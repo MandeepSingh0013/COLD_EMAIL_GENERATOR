@@ -17,8 +17,9 @@ def logout():
         st.rerun()
 
 def coldEmail():
-    app=ColdMailGenerator()
-    app.run()
+    if st.session_state.logged_in:
+        app=ColdMailGenerator()
+        app.run()
 
 login_page = st.Page(login, title="Log in", icon=":material/login:",default=True)
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
