@@ -1,6 +1,6 @@
 import streamlit as st
 import pyrebase
-
+import webbrowser
 # Firebase configuration
 firebase_config = {
     "apiKey": "AIzaSyDdSxH3qIrd9mGQy1CTKRrVQhXm5HKeJQM",
@@ -40,10 +40,30 @@ class Authentication:
                     
                 except Exception as e:
                     st.error(f"Error: {e}")
-                    
-        elif login_option in ["Google", "Facebook", "Microsoft"]:
-            st.write(f"{login_option} login is only available on deployment (OAuth).")
+        
+        elif login_option == "Google":
+            self.google_login()
+            # st.write("Google login is only available on deployment (OAuth).")
 
+        # elif login_option in ["Google", "Facebook", "Microsoft"]:
+            # st.write(f"{login_option} login is only available on deployment (OAuth).")
+    
+    def google_login(self):
+        # try:
+        #         print("in google login")
+        #         # Attempt to sign in with a popup
+        #         user = auth.sign_in_with_popup('google')
+        #         st.success(f"Logged in as: {user['email']}")
+        # except Exception as e:
+        #         st.error(f"Error during Google Login: {e}")
+
+        # print("in google login")
+        st.write("Google OAuth Login initiated...")
+        
+        auth_url = f"https://coldmailgenerator.firebaseapp.com/__/auth/handler"  # OAuth handler URL from Firebase
+        webbrowser.open(auth_url)
+        st.write("Redirecting to Google OAuth...")
+    
     def sign_up(self):
         """Sign up form for new users"""
         st.title("Sign up for Cold Email Generator")
@@ -130,6 +150,8 @@ def check_login():
         return True
         # cold_email_app = ColdEmailGeneratorApp(st.session_state['user'])
         # cold_email_app.show_user_options()
-
-# if __name__ == "__main__":
-#     check_login()
+        # return  st.session_state['user']
+    # Return default values if not logged in
+    # return  None
+if __name__ == "__main__":
+    check_login()
