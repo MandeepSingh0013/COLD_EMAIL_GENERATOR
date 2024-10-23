@@ -52,23 +52,31 @@ class EmailGeneratorApp:
 
         
     def userType(self):
+        # Store the previous user type to detect changes
+        prev_user_type = st.session_state.user_type
 
         user_type = st.sidebar.radio(
             "I am a...",
             options=["Company Representative", "Individual (Job Search/Freelance)", "Researcher"]
         )
+        # If the user type has changed, update and rerun the app
+        if user_type != prev_user_type:
+            st.session_state.user_type = user_type
+            self.update_config("USER_ROLE", user_type)
+            st.rerun()  # Rerun the app to reflect changes
 
         # Save the user type in the session state
         # st.session_state.user_type = user_type
         st.sidebar.text("Made With ❤ by Man")
         self.update_config("USER_ROLE",user_type)
+       
 
     def login(self):
         user = check_login()  # Check login credentials
         if user:
             st.session_state.logged_in = True
             st.rerun()
-
+    
     def logout(self):
         if st.button("Log out"):
             st.session_state.logged_in = False
@@ -95,6 +103,7 @@ class EmailGeneratorApp:
         config = self.load_config()
         config[key] = value
         self.save_config(config)
+        
 
 if __name__=="__main__":
     mail=EmailGeneratorApp()

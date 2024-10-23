@@ -1,6 +1,6 @@
-__import__('pysqlite3')
+# __import__('pysqlite3')
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 import re
@@ -11,8 +11,10 @@ from .file_handler import FileHandler
 import pandas as pd
 from .email_file import EmailApp
 # from app.login_page import check_login
-
-
+import json
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+config_file_path = os.path.join(current_dir, 'config.json')
 # Function to validate URL
 def is_valid_url(url):
     regex = re.compile(
@@ -51,6 +53,7 @@ class ColdMailGenerator:
         # Column 1: LLM Selection Radio Button
         with col1:
              self.temp_model_choice = self.select_llm()
+            
 
         # Column 2: Language Selection
         with col2:
@@ -127,9 +130,26 @@ class ColdMailGenerator:
         st.session_state.setdefault("feedback",None)
 
     def select_llm(self):
+        config=self.load_config()
         st.subheader("Select LLM Model")
+        if config["USER_ROLE"]=="Researcher":
+            return st.radio("Select the LLM model:", ("LLama", "Gemma", "Mixtral"), index=0)
+        else:
+            return st.radio("Select the LLM model:", ("LLama"), index=0)
+
+
+        
         # self.model_choice=st.radio("Select the LLM model:", ("LLama", "Gemma", "Mixtral"), index=0)
-        return st.radio("Select the LLM model:", ("LLama", "Gemma", "Mixtral"), index=0)
+        
+    
+    # Load the config from the JSON file
+    def load_config(self):
+        try:
+            with open(config_file_path, 'r') as file:
+                return json.load(file)
+        except Exception as e:
+            print(e)
+
 
     def select_language(self):
         st.subheader("Select Language")
