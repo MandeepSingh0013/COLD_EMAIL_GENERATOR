@@ -1,6 +1,6 @@
-# __import__('pysqlite3')
+__import__('pysqlite3')
 import sys
-# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 import re
@@ -92,7 +92,7 @@ class ColdMailGenerator:
         with col7:
             self.display_generated_cover_note()
 
-        self.email_app() 
+        self.email_app()
 
     def get_user_details(self):
         # Get user details: Full Name, Designation, Company Name
@@ -135,7 +135,7 @@ class ColdMailGenerator:
         if config["USER_ROLE"]=="Researcher":
             return st.radio("Select the LLM model:", ("LLama", "Gemma", "Mixtral"), index=0)
         else:
-            return st.radio("Select the LLM model:", ("LLama"), index=0)
+            return st.radio("Select the LLM model:", ("LLama","Gemma"), index=0)
 
 
         
@@ -308,23 +308,32 @@ class ColdMailGenerator:
             st.code(st.session_state.email, language="markdown")
 
     def process_cover_note_submission(self):
-        # def process_cover_note_submission(self):
         """Process the cover note submission."""
-        
-        if not st.session_state.aboutus_url_valid:
-            st.error("Enter a valid URL for the 'About Us' section.")
-            return
+        config=self.load_config()
+        if config["USER_ROLE"]=="Individual (Job Search/Freelance)":
+            
+            if not (st.session_state.aboutus_url_valid or  st.session_state.special_instructions): 
+                st.error("Enter either a valid 'About You' URL or Instruction Text.")
+                return
+        else:
+            if not st.session_state.aboutus_url_valid: 
+                st.error("Enter a valid URL for the 'About Us' section.")
+                return
         if not (st.session_state.full_name and st.session_state.designation): #and st.session_state.company_name):
             st.error("Please provide your full name, designation, and company name.")
             return 
         # Load 'About Us' content
+        
         with st.spinner('Generating the cover note...'):
             try:
-                # Fetch and clean 'About Us' data from the URL
-                loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
-                about_us_data = clean_text(loader_about_us.load().pop().page_content)
-                # about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
-
+                if st.session_state.aboutus_url_valid:
+                    # Fetch and clean 'About Us' data from the URL
+                    loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
+                    about_us_data = clean_text(loader_about_us.load().pop().page_content)
+                    about_us_data =about_us_data+ st.session_state.special_instructions
+                    # about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
+                else:
+                    about_us_data= st.session_state.special_instructions
                 # Generate cover note based on job descriptions, if available
                 if st.session_state.jobs:
 
@@ -370,7 +379,7 @@ class ColdMailGenerator:
 
 
 
-# if __name__ == "__main__":
-#     app = ColdMailGenerator()
-#     # st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")
-#     app.run()
+if __name__ == "__main__":
+    app = ColdMailGenerator()
+    st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")
+    app.run()

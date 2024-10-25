@@ -57,7 +57,7 @@ class EmailGeneratorApp:
 
         user_type = st.sidebar.radio(
             "I am a...",
-            options=["Company Representative", "Individual (Job Search/Freelance)", "Researcher"]
+            options=["Company Representative", "Individual (Job Search/Freelance)"]#, "Researcher"]
         )
         # If the user type has changed, update and rerun the app
         if user_type != prev_user_type:

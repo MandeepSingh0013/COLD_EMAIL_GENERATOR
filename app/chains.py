@@ -8,10 +8,13 @@ import time
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import logging
 import re
-# Initialize a logger
-# logging.basicConfig(level=logging.INFO)
-# logger = logging.getLogger(__name__)
 
+
+import json
+
+# Path to the current directory and the config file
+current_dir = os.path.dirname(os.path.abspath(__file__))
+config_file_path = os.path.join(current_dir,'config.json')
 load_dotenv()
 
 class Chain:
@@ -42,7 +45,10 @@ class Chain:
             timeout=None,
             max_retries=2
         )
-    
+    # Load the config from the JSON file
+    def load_config(self):
+        with open(config_file_path, 'r') as file:
+            return json.load(file)
     # Select which model to use
     def get_model(self, model_name):
         if model_name == "LLama":
@@ -86,17 +92,22 @@ class Chain:
     )
     def write_cover_note(self, model_name, full_name, designation, company_name, about_us_text,target_language,tone,job=None):
         llm = self.get_model(model_name)  # Get the LLM based on the selection
+        cover_note_prompt=self.load_config()
+        if cover_note_prompt["USER_ROLE"]=="Company Representative":
+            cover_note_prompt=cover_note_prompt["users"]["user1"]["cover_note_prompt"]
+        else: 
+            cover_note_prompt=cover_note_prompt["users"]["user2"]["cover_note_prompt"]
+        
         # Prepare the job description section if provided
-        # job_description_section = f"### JOB DESCRIPTION:\n{job}\n" if job else ""
         # Prepare the job description section if provided
-        job_description_section = ""
+        
         if job:
             job_role = job.get("role", "")
             job_experience = job.get("experience", "")
             job_skills = ", ".join(job.get("skills", []))
             job_description = job.get("description", "")
             
-            job_description_section = f"""
+            job = f"""
             ### JOB ROLE:
             {job_role}
 
@@ -109,35 +120,11 @@ class Chain:
             ### JOB DESCRIPTION:
             {job_description}
             """
-
-
-
-
+        
         # Prompt template for generating the cover note
         prompt_cover_note = PromptTemplate.from_template(
-        f"""
-        ### ABOUT US (Service Provider):
-        {about_us_text}
+        cover_note_prompt
 
-        {job_description_section}
-
-        ### INSTRUCTION:
-        You are {full_name}, {designation} at {company_name}. Your company specializes in providing services as described in the 'ABOUT US' section above. 
-        You are writing a professional cover note to pitch your services to a potential client based on the details provided.
-
-        The goal is to explain how {company_name}'s expertise can help fulfill the client's needs.
-        Align {company_name}'s strengths with the client's potential needs and emphasize relevant skills, experience, and solutions.
-
-        Write the cover note in a {tone} tone to match the desired communication style.
-
-        Ensure that the note is concise, relevant, and to the point. If there isn't enough data in the 'ABOUT US' section or the job description, 
-        avoid adding irrelevant or fabricated information.
-
-        After writing the cover note in English, translate it into {target_language}.
-        If the target language is English, no translation is needed.
-
-        ### COVER NOTE (IN ENGLISH AND TRANSLATED TO {target_language} IF NEEDED):
-    """
     )
 
         try:
@@ -148,10 +135,11 @@ class Chain:
                 "full_name": full_name,
                 "designation": designation,
                 "company_name": company_name,
-                "about_us": about_us_text,
-                "job_description": job,
+                "about_us_text": about_us_text,
+                "job_description_section": job,
                 "target_language": target_language,
                 "tone": tone
+            
             })
             return res.content
         except Exception as e:
@@ -201,7 +189,7 @@ class Chain:
     
     def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name,tone, about_us=None, comments=None):
         llm = self.get_model(model_name)  # Get the LLM based on the model name
-
+        mail_prompt=self.load_config()
         # Define the base company description
         company_description = f"{company_name} is a consulting company specializing in providing services tailored to meet the needs of various industries."
         
@@ -212,30 +200,15 @@ class Chain:
         # If additional comments are provided, include them as well
         if comments:
             company_description += f" {comments}"
+        if mail_prompt["USER_ROLE"]=="Company Representative":
+            mail_prompt=mail_prompt["users"]["user1"]["mail_prompt"]
+        else: 
+            mail_prompt=mail_prompt["users"]["user2"]["mail_prompt"]
 
         # Unified prompt that generates the email and optionally translates it
         prompt_email_translate = PromptTemplate.from_template(
-            """
-            ### JOB DESCRIPTION:
-            {job_description}
-
-            ### COMPANY DESCRIPTION:
-            {company_description}
-
-            ### INSTRUCTION:
-            You are {full_name}, a {designation} at {company_name}. Based on the company description provided above, write a cold email to the client regarding the job described, 
-            highlighting {company_name}'s capabilities tofulfilling their needs.
-            Optionally, include relevant portfolio links to showcase {company_name}'s work: {link_list}
-
-            The email should be written in a {tone} tone to match the desired communication style (e.g., formal, friendly, persuasive).
+            mail_prompt
             
-            Ensure the email is professional, concise, and aligned with the job description. Avoid irrelevant or fabricated details.
-            
-            After writing the email in English, translate it into {target_language}. If the target language is English, no translation is needed.
-            Do not provide a preamble.
-
-            ### EMAIL (IN ENGLISH AND THEN TRANSLATED TO {target_language} IF NEEDED):
-            """
         )
 
         # Invoke the LLM with both job and language context

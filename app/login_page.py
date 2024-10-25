@@ -25,7 +25,7 @@ class Authentication:
     def login(self):
         """Login form for users"""
         st.title("Login to Cold Email Generator")
-        login_option = st.selectbox("Login Method", ("Email/Password", "Google", "Facebook", "Microsoft"))
+        login_option = st.selectbox("Login Method", ("Email/Password"))#, "Google", "Facebook", "Microsoft"))
 
         if login_option == "Email/Password":
             email = st.text_input("Enter Email")
