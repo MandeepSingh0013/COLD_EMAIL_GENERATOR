@@ -69,12 +69,17 @@ class Authentication:
                         error_message = http_err.response.json().get("error", {}).get("message", "")
                     else:
                         error_message = "No response received from the server."
-
+                     # Use regex to capture message if available
+                    if http_err.strerror:
+                        match = re.search(r'\"message\": \"(.*?)\"', http_err.strerror)
+                        if match:
+                            error_message = match.group(1)
+                
                     # Display appropriate error message based on error content
                     if "INVALID_EMAIL" in error_message:
                         st.error("Email not found. Please sign up first.")
                     elif "INVALID_LOGIN_CREDENTIALS" in error_message:
-                        st.error("Incorrect password. Please try again.")
+                        st.error("Incorrect Email and Password. Please try again.")
                     elif "USER_DISABLED" in error_message:
                         st.error("Account disabled. Contact support.")
                     elif "MISSING_PASSWORD" in error_message:
