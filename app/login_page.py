@@ -71,12 +71,14 @@ class Authentication:
                         error_message = "No response received from the server."
 
                     # Display appropriate error message based on error content
-                    if "EMAIL_NOT_FOUND" in error_message:
+                    if "INVALID_EMAIL" in error_message:
                         st.error("Email not found. Please sign up first.")
-                    elif "INVALID_PASSWORD" in error_message:
+                    elif "INVALID_LOGIN_CREDENTIALS" in error_message:
                         st.error("Incorrect password. Please try again.")
                     elif "USER_DISABLED" in error_message:
                         st.error("Account disabled. Contact support.")
+                    elif "MISSING_PASSWORD" in error_message:
+                        st.error("Enter Password")
                     else:
                         st.error("Login failed. Please try again.")
 
