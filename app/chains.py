@@ -5,17 +5,21 @@ from langchain_core.exceptions import OutputParserException #
 from dotenv import load_dotenv #Load Environment veriable
 import os #Load the data from system
 import time
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import logging
 import re
-
-
 import json
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
 
 # Path to the current directory and the config file
 current_dir = os.path.dirname(os.path.abspath(__file__))
 config_file_path = os.path.join(current_dir,'config.json')
 load_dotenv()
+
+# Set up logging
+log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app.log')
+logging.basicConfig(level=logging.INFO, filename=log_file_path, 
+                    format='%(asctime)s:%(levelname)s:%(message)s')
 
 class Chain:
     #Invoking LLAma model from GROQ
@@ -49,6 +53,7 @@ class Chain:
     def load_config(self):
         with open(config_file_path, 'r') as file:
             return json.load(file)
+        
     # Select which model to use
     def get_model(self, model_name):
         if model_name == "LLama":
@@ -80,8 +85,9 @@ class Chain:
         try:
             json_parser = JsonOutputParser()
             res= json_parser.parse(res.content)
-        except OutputParserException:
-            raise OutputParserException("Context too big. Unable to parse jobs.")
+        except OutputParserException as e:
+            logging.error(f"Job extraction error: {e}")
+            raise OutputParserException("Job extraction failed. The context may be too large. Please try a smaller input.")
         return res if isinstance(res,list) else [res]
     
     
@@ -123,9 +129,7 @@ class Chain:
         
         # Prompt template for generating the cover note
         prompt_cover_note = PromptTemplate.from_template(
-        cover_note_prompt
-
-    )
+        cover_note_prompt)
 
         try:
             # Invoke the LLM with both job and language context
@@ -141,23 +145,20 @@ class Chain:
                 "tone": tone
             
             })
+            logging.info("Cover note generated successfully.")
             return res.content
         except Exception as e:
-            return f"An error occurred while generating the cover note: {e}"
+            logging.error(f"An error occurred while generating the cover note: {e}")
+            return "An error occurred while generating the cover note. Please check your input or try again later."
     
     def extract_portfolio_data(self, model_name, cleaned_text):
-
         # Get the LLM model
         llm = self.get_model(model_name) 
-    
             # Define the prompt for extracting tech stacks and links
         prompt_extract = PromptTemplate.from_template(
             """
             ### USER'S PORTFOLIO DATA:
             {portfolio_data}
-
-           
-
             ### INSTRUCTION:
             The given data contains tech stacks and their respective portfolio links. Your task is to extract this information 
             and return it in a structured JSON format containing two keys: `techstack` and `links`. If a link is not available, return "N/A". 
@@ -176,16 +177,17 @@ class Chain:
         # Chain the prompt with the LLM model
         chain_extract = prompt_extract | llm
         result = chain_extract.invoke(input={"portfolio_data": cleaned_text})
-        # print(result.content)
-
         # Parse the output to JSON format
         try:
             json_parser = JsonOutputParser()
             result = json_parser.parse(result.content)
-        except OutputParserException:
-            raise OutputParserException("Unable to parse portfolio data.")
-
+            
+        except OutputParserException as e:
+            logging.error(f"Portfolio extraction failed. The input may be too large or improperly formatted. {e}")
+            raise OutputParserException("Portfolio extraction failed. The input may be too large or improperly formatted.")
         return result if isinstance(result, list) else [result]
+
+        
     
     def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name,tone, about_us=None, comments=None):
         llm = self.get_model(model_name)  # Get the LLM based on the model name
@@ -207,26 +209,27 @@ class Chain:
 
         # Unified prompt that generates the email and optionally translates it
         prompt_email_translate = PromptTemplate.from_template(
-            mail_prompt
-            
-        )
+            mail_prompt)
 
-        # Invoke the LLM with both job and language context
-        chain_email_translate = prompt_email_translate | llm
+        try:
+            # Invoke the LLM with both job and language context
+            chain_email_translate = prompt_email_translate | llm
 
-        # Invoke the chain with the dynamic inputs
-        res = chain_email_translate.invoke({
-            "job_description": str(job),
-            "company_description": company_description,
-            "link_list": links if links else "No links provided.",
-            "target_language": language,
-            "full_name": full_name,
-            "designation": designation,
-            "company_name": company_name,
-            "tone": tone 
-        })
-
-        return res.content
+            # Invoke the chain with the dynamic inputs
+            res = chain_email_translate.invoke({
+                "job_description": str(job),
+                "company_description": company_description,
+                "link_list": links if links else "No links provided.",
+                "target_language": language,
+                "full_name": full_name,
+                "designation": designation,
+                "company_name": company_name,
+                "tone": tone 
+            })
+            return res.content
+        except Exception as e:
+            logging.error(f"Email Generation error:{e}")
+            return "An error occurred while generating the email. Please verify your inputs and try again."
 
     def summarize_and_get_links(self, model_name,about_us_text):
        
@@ -258,5 +261,6 @@ class Chain:
             return {"About us":summary,"links": links}
         
         except Exception as e:
-            return f"An error occurred during summarization: {e}", []
+            logging.error(f"Summarization error: {e}")
+            return "An error occurred during summarization. Please try again later.", []
     
