@@ -9,11 +9,12 @@ from .portfolio import Portfolio
 from .utils import clean_text , clean_portfolio_text
 from .file_handler import FileHandler
 import pandas as pd
-from .email_file import EmailApp
 import json
 import os
 import logging
-
+from .regenerate import EmailRefinerApp
+import requests
+from bs4 import BeautifulSoup 
 # Set up logging
 log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app.log')
 logging.basicConfig(level=logging.INFO, filename=log_file_path, 
@@ -75,11 +76,16 @@ class ColdMailGenerator:
         col6,col7=st.columns(2)
         with col6:
             self.display_generated_email()
+            if st.session_state.email_generated:
+                self.mail_feedback()
         with col7:
             self.display_generated_cover_note()
-        self.email_app()
+            if st.session_state.cover_note_generated:
+                self.cover_note_feedback()
+        
 
     def init_session_state(self):
+        st.session_state.setdefault("email_generated",False)
         st.session_state.setdefault("email","")
         st.session_state.setdefault("status","")
         st.session_state.setdefault("url_valid",False)
@@ -100,6 +106,9 @@ class ColdMailGenerator:
         st.session_state.setdefault("feedback_portfolio","")
         st.session_state.setdefault("detailed_feedback","")
         st.session_state.setdefault("feedback",None)
+        st.session_state.setdefault("mail_feedback","")
+        st.session_state.setdefault("note_feedback","")
+
     
     def get_user_details(self):
         # Get user details: Full Name, Designation, Company Name
@@ -236,15 +245,6 @@ class ColdMailGenerator:
                 st.warning("Invalid URL format. Please enter a valid URL.")
                 logging.warning("Invalid job URL format entered.")
 
-    # def show_submit_button(self):
-    #     submit_button = st.button("Generate Mail")
-    #     if submit_button:
-    #         if st.session_state.url_valid and st.session_state.full_name and st.session_state.designation and st.session_state.company_name:
-    #             st.session_state.model_choice = self.temp_model_choice  # Save model choice only when clicked
-    #             st.session_state.selected_language = self.temp_language_choice
-    #             self.process_submission()
-    #         else:
-    #             st.error("Please Provide Company URL, Full Name, Designation and Company Name")
     def show_submit_button(self):
         if st.button("Generate Mail"):
             if all([st.session_state.company_url_valid, st.session_state.full_name, st.session_state.designation, st.session_state.company_name]):
@@ -257,58 +257,124 @@ class ColdMailGenerator:
 
     def show_cover_note_button(self):
         if st.button("Generate Cover Note"):
+            st.session_state.model_choice = self.temp_model_choice
+            st.session_state.selected_language = self.temp_language_choice
             self.process_cover_note_submission()
-    #Generating Mail
+  
+
     def process_submission(self):
         with st.spinner("Generating the cold email..."):
             try:
-                # Load data using WebBaseLoader
-                loader = WebBaseLoader([st.session_state.company_url])
-                scraped_data = loader.load().pop() if loader else None
-                
-                # Check for page_content or fallback to description/title in metadata
+                # Attempt to load data using WebBaseLoader
                 data = None
-                if scraped_data:
-                    data = clean_text(scraped_data.page_content) if hasattr(scraped_data, 'page_content') and scraped_data.page_content else None
-                    if not data:
-                        # Attempt to get data from metadata fields
-                        metadata = scraped_data.metadata
-                        data = metadata.get("description", "") or metadata.get("title", "")
-                        
-                    if data:
-                        about_us_data = self.fetch_about_us_data()
-                        about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice, about_us_data)
-                        special_instructions = st.session_state.special_instructions or []
+                try:
+                    loader = WebBaseLoader([st.session_state.company_url])
+                    scraped_data = loader.load().pop() if loader else None
 
-                        # Extract job data and generate email
-                        st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
-                        for job in st.session_state.jobs:
-                            skills = job.get('skills', [])
-                            links = self.portfolio.query_links(skills)
-                            st.session_state.email = self.chain.write_mail_with_translation(
-                                st.session_state.model_choice, job, links, st.session_state.selected_language,
-                                st.session_state.full_name, st.session_state.designation, st.session_state.company_name,
-                                about_us_data, special_instructions, st.session_state.tone
-                            )
-                            st.session_state.email_generated = True
-                            logging.info("Email generated successfully for job.")
-                    else:
-                        st.error("No relevant content found in the scraped data.")
-                        logging.warning("Scraped data is empty or does not contain relevant content.")
+                    # Check for page_content or fallback to description/title in metadata
+                    if scraped_data:
+                        data = clean_text(scraped_data.page_content) if hasattr(scraped_data, 'page_content') and scraped_data.page_content else None
+                        if not data:
+                            # Attempt to get data from metadata fields
+                            metadata = scraped_data.metadata
+                            data = metadata.get("description", "") or metadata.get("title", "")
+                except Exception as loader_error:
+                    logging.warning(f"WebBaseLoader failed: {loader_error}")
+                
+                # Fallback to BeautifulSoup scraping if WebBaseLoader didn't work or data is empty
+                if not data:
+                    try:
+                        response = requests.get(st.session_state.company_url, headers={'User-Agent': 'Mozilla/5.0'})
+                        response.raise_for_status()
+                        
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        
+                        # Try extracting page content or relevant metadata
+                        data = soup.find("meta", {"name": "description"})['content'] if soup.find("meta", {"name": "description"}) else ""
+                        if not data:
+                            data = soup.title.string if soup.title else ""
+                            
+                    except Exception as requests_error:
+                        logging.error(f"Requests fallback failed: {requests_error}")
+                        st.error("Failed to retrieve data from the provided URL.")
+                        return
+
+                if data:
+                    about_us_data = self.fetch_about_us_data()
+                    about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice, about_us_data)
+                    special_instructions = st.session_state.special_instructions or []
+
+                    # Extract job data and generate email
+                    st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
+                    for job in st.session_state.jobs:
+                        skills = job.get('skills', [])
+                        links = self.portfolio.query_links(skills)
+                        st.session_state.email = self.chain.write_mail_with_translation(
+                            st.session_state.model_choice, job, links, st.session_state.selected_language,
+                            st.session_state.full_name, st.session_state.designation, st.session_state.company_name,
+                            about_us_data, special_instructions, st.session_state.tone
+                        )
+                        st.session_state.email_generated = True
+                        logging.info("Email generated successfully for job.")
                 else:
-                    st.error("Failed to load data. Try another URL.")
-                    logging.warning("Data loader returned empty content.")
-                    
+                    st.error("No relevant content found in the scraped data.")
+                    logging.warning("No usable data found from either WebBaseLoader or fallback methods.")
+
             except Exception as e:
                 st.error(f"An error occurred: {e}")
                 logging.error(f"Error during email generation: {e}")
-        
+
+    
     def fetch_about_us_data(self):
-        """Fetches and returns the About Us data if a valid URL is provided."""
+        """Fetches and returns data from the About Us or LinkedIn profile URL."""
         if st.session_state.aboutus_url_valid:
-            loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
-            return clean_text(loader_about_us.load().pop().page_content)
-        return [] 
+            try:
+                # Attempt to load data using WebBaseLoader
+                loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
+                scraped_data = loader_about_us.load().pop() if loader_about_us else None
+                
+                if scraped_data and hasattr(scraped_data, 'page_content') and scraped_data.page_content:
+                    return clean_text(scraped_data.page_content)
+
+                # Fallback if WebBaseLoader content is missing or URL is a LinkedIn profile
+                if "linkedin.com" in st.session_state.aboutus_url:
+                    return self.fetch_linkedin_profile_data(st.session_state.aboutus_url)
+
+            except Exception as e:
+                logging.error(f"Failed to fetch About Us data with WebBaseLoader: {e}")
+                # Attempt LinkedIn profile-specific fallback if WebBaseLoader fails entirely
+                if "linkedin.com" in st.session_state.aboutus_url:
+                    return self.fetch_linkedin_profile_data(st.session_state.aboutus_url)
+
+        return ""
+
+    def fetch_linkedin_profile_data(self, url):
+        """Fetches data specifically from a LinkedIn personal profile page."""
+        try:
+            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Try extracting profile summary from LinkedIn profile's metadata or main content
+            profile_summary = soup.find("meta", {"property": "og:description"})
+            profile_data = profile_summary['content'] if profile_summary else ""
+            
+            # Fallback to title or other available fields if description is not available
+            if not profile_data:
+                profile_data = soup.title.string if soup.title else ""
+            
+            return clean_text(profile_data)
+
+        except Exception as e:
+            logging.error(f"Failed to retrieve LinkedIn profile data: {e}")
+            return ""
+
+    # def fetch_about_us_data(self):
+    #     """Fetches and returns the About Us data if a valid URL is provided."""
+    #     if st.session_state.aboutus_url_valid:
+    #         loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
+    #         return clean_text(loader_about_us.load().pop().page_content)
+    #     return "" #[]
     
     
     def display_generated_email(self):
@@ -344,13 +410,13 @@ class ColdMailGenerator:
                 if st.session_state.jobs:
                     for job in st.session_state.jobs:
                         st.session_state.cover_note = self.chain.write_cover_note(
-                            self.temp_model_choice, st.session_state.full_name, st.session_state.designation,
-                            st.session_state.company_name, about_us_data, self.temp_language_choice, st.session_state.tone, job
+                            st.session_state.model_choice, st.session_state.full_name, st.session_state.designation,
+                            st.session_state.company_name, about_us_data, st.session_state.selected_language, st.session_state.tone, job
                         )
                 else:
                     st.session_state.cover_note = self.chain.write_cover_note(
-                        self.temp_model_choice, st.session_state.full_name, st.session_state.designation,
-                        st.session_state.company_name, about_us_data, self.temp_language_choice, st.session_state.tone
+                        st.session_state.model_choice, st.session_state.full_name, st.session_state.designation,
+                        st.session_state.company_name, about_us_data, st.session_state.selected_language, st.session_state.tone
                     )
                 st.session_state.cover_note_generated = True
                 logging.info("Cover note generated successfully.")
@@ -364,15 +430,34 @@ class ColdMailGenerator:
         # """Display the generated cover note if it exists in session state."""
         if st.session_state.get("cover_note_generated", False):
             st.subheader(f"Generated Cover Note ")#({st.session_state.model_choice}, {st.session_state.selected_language}):")
-            with st.expander("Cover Note"):
-                st.write(st.session_state.cover_note)
-
-    def email_app(self):
-        email = EmailApp()
-        email.display_form()
-
-
-
+            # with st.expander("Cover Note"):
+            st.code(st.session_state.cover_note,language="markdown")
+    
+    def mail_feedback(self):
+        
+        st.subheader("Re-Generate Mail")
+        st.session_state.mail_feedback=st.text_area("Enter feedback to re-generate the Mail",max_chars=200)
+        if st.button("Re-generate Mail"):
+            if st.session_state.mail_feedback:
+                with st.spinner("Re-Generating the cold email..."):
+                    regenerated_email=EmailRefinerApp()
+                    regenerated_email=regenerated_email.refine_email(st.session_state.email,st.session_state.mail_feedback,st.session_state.selected_language)
+                    st.session_state.email=regenerated_email
+                    st.rerun()
+            else:
+                st.error("Enter Feedback")
+    def cover_note_feedback(self):
+        st.subheader("Re-Generate Cover Note")
+        st.session_state.note_feedback=st.text_area("Enter feedback to re-generate the cover note",max_chars=200)
+        if st.button("Re-Generate Cover Note"):
+            if st.session_state.note_feedback:
+                with st.spinner("Re-Generating the cover note..."):
+                    regenerated_note=EmailRefinerApp()
+                    regenerated_note=regenerated_note.refine_cover_note(st.session_state.cover_note,st.session_state.note_feedback,st.session_state.selected_language)
+                    st.session_state.cover_note=regenerated_note
+                    st.rerun()
+            else:
+                st.error("Enter Feedback")
 if __name__ == "__main__":
     app = ColdMailGenerator()
     st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")

@@ -8,6 +8,7 @@ import time
 import requests
 import json
 from dotenv import load_dotenv
+
 # Initialize logging
 logging.basicConfig(filename="app.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 load_dotenv()

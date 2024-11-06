@@ -8,7 +8,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(current_dir, '..'))
 from app.login_page import check_login
 from app.main import ColdMailGenerator
-
+from app.email_file import EmailApp
+from app.form import contact_form
 # Logging setup
 logging.basicConfig(
     filename='email_generator_app.log',
@@ -43,12 +44,54 @@ class EmailGeneratorApp:
     def show_navigation(self, logged_in):
         """Displays navigation based on login status."""
         if logged_in:
+            about_page = st.Page(self.about_me,title="About Me",icon=":material/account_circle:")
             logout_page = st.Page(self.show_logout_page, title="Log out", icon=":material/logout:")
             dashboard_page = st.Page(self.show_dashboard, title="Dashboard", icon=":material/mail:",default=True)
-            st.navigation({"Account": [logout_page], "Dashboard": [dashboard_page]}).run()
+            email_page = st.Page(self.email_app, title="Email", icon=":material/send:")
+            
+            st.navigation({"About Me":[about_page], "Dashboard": [dashboard_page],"Send Mail":[email_page],"Account": [logout_page]}).run()
         else:
             login_page = st.Page(self.show_login_page, title="Log in", icon=":material/login:", default=True)
             st.navigation([login_page]).run()
+    
+    @st.dialog("Contact Me")
+    def show_contact_form(self):
+        contact_form()
+    
+    def about_me(self):
+        col1, col2 = st.columns(2,gap="small",vertical_alignment="center")
+        with col1:
+           st.image("src/assets/profile_image.jpg",width=400)
+        with col2:
+           st.title("Mandyy",anchor=False)
+           st.write(
+               "Data Scientist, assisting enterprises by supporting data-driven decision-making."
+           )
+           if st.button("💌 Contact Me"):
+               self.show_contact_form()
+        st.write("\n")
+        st.subheader("Experience & Qualifications", anchor=False)
+
+        st.write("""        
+        - 4+ Years experience extracting actionable insights from data 
+        - Strong hands-on experience and knowledge in Python and Excel
+        - Good understanding of statistical principles and their respective applications
+        - Excellent team-player and displaying a strong sense of initiative on tasks"""
+        )
+
+
+        #SKILLS
+        st.write("\n")
+        st. subheader("Hard Skills", anchor=False)
+        st.write(
+        """
+        - Programming: Python (Scikit-learn, Pandas), SQL, VBA
+        - Data Visualization: PowerBi, MS Excel, Plotly
+        - Modeling: Logistic regression, linear regression, decision trees
+        - Databases: Postgres, MongoDB, MySQL
+        """
+        )
+
 
     def display_user_type_selection(self):
         """Allows user type selection and updates configuration accordingly."""
@@ -97,6 +140,10 @@ class EmailGeneratorApp:
             except Exception as e:
                 st.error("An error occurred while loading the Cold Email Generator.")
                 logging.error("Error in coldEmail function: %s", e)
+    
+    def email_app(self):
+        email = EmailApp()
+        email.display_form()
 
     def load_config(self):
         """Loads configuration from JSON file, handling errors gracefully."""

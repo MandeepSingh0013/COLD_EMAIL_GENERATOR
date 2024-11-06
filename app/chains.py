@@ -188,7 +188,11 @@ class Chain:
         return result if isinstance(result, list) else [result]
 
         
-    
+    @retry(
+        stop=stop_after_attempt(5),  # Retry up to 5 times
+        wait=wait_exponential(multiplier=0.1, min=0.2, max=60),  # Exponential backoff starting at 200ms
+        retry=retry_if_exception_type(Exception)  # Retry only on rate limit error (429)
+    )
     def write_mail_with_translation(self, model_name, job, links, language, full_name, designation, company_name,tone, about_us=None, comments=None):
         llm = self.get_model(model_name)  # Get the LLM based on the model name
         mail_prompt=self.load_config()
