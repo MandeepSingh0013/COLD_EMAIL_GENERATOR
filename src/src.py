@@ -66,6 +66,7 @@ class EmailGeneratorApp:
            st.title("Mandyy",anchor=False)
            st.write(
                "Data Scientist, assisting enterprises by supporting data-driven decision-making."
+               "https://www.linkedin.com/in/mandeeepsingh/"
            )
            if st.button("💌 Contact Me"):
                self.show_contact_form()
