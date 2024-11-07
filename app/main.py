@@ -295,23 +295,35 @@ class ColdMailGenerator:
                         return
 
                 if data:
-                    
                     about_us_data = self.fetch_about_us_data()
                     about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice, about_us_data)
                     special_instructions = st.session_state.special_instructions or []
 
                     # Extract job data and generate email
                     st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
+                    
+                    if not st.session_state.jobs:
+                        st.error("No job data could be extracted.")
+                        logging.warning("No job data found in extracted information.")
+                        return
+                    
                     for job in st.session_state.jobs:
                         skills = job.get('skills', [])
-                        links = self.portfolio.query_links(skills)
-                        st.session_state.email = self.chain.write_mail_with_translation(
-                            st.session_state.model_choice, job, links, st.session_state.selected_language,
-                            st.session_state.full_name, st.session_state.designation, st.session_state.company_name,
-                            st.session_state.tone,about_us_data, special_instructions
-                        )
-                        st.session_state.email_generated = True
-                        logging.info("Email generated successfully for job.")
+                        
+                        # Only query links if skills are found
+                        links = self.portfolio.query_links(skills) if skills else []
+                        
+                        # Ensure we have valid links and job data before generating email
+                        if job and links is not None:
+                            st.session_state.email = self.chain.write_mail_with_translation(
+                                st.session_state.model_choice, job, links, st.session_state.selected_language,
+                                st.session_state.full_name, st.session_state.designation, st.session_state.company_name,
+                                st.session_state.tone, about_us_data, special_instructions
+                            )
+                            st.session_state.email_generated = True
+                            logging.info("Email generated successfully for job.")
+                        else:
+                            st.warning("Email generation skipped due to missing job data or links.")
                 else:
                     st.error("No relevant content found in the scraped data.")
                     logging.warning("No usable data found from either WebBaseLoader or fallback methods.")
@@ -319,6 +331,70 @@ class ColdMailGenerator:
             except Exception as e:
                 st.error(f"An error occurred: {e}")
                 logging.error(f"Error during email generation: {e}")
+
+    
+    # def process_submission(self):
+    #     with st.spinner("Generating the cold email..."):
+    #         try:
+    #             # Attempt to load data using WebBaseLoader
+    #             data = None
+    #             try:
+    #                 loader = WebBaseLoader([st.session_state.company_url])
+    #                 scraped_data = loader.load().pop() if loader else None
+
+    #                 # Check for page_content or fallback to description/title in metadata
+    #                 if scraped_data:
+    #                     data = clean_text(scraped_data.page_content) if hasattr(scraped_data, 'page_content') and scraped_data.page_content else None
+    #                     if not data:
+    #                         # Attempt to get data from metadata fields
+    #                         metadata = scraped_data.metadata
+    #                         data = metadata.get("description", "") or metadata.get("title", "")
+    #             except Exception as loader_error:
+    #                 logging.warning(f"WebBaseLoader failed: {loader_error}")
+                
+    #             # Fallback to BeautifulSoup scraping if WebBaseLoader didn't work or data is empty
+    #             if not data:
+    #                 try:
+    #                     response = requests.get(st.session_state.company_url, headers={'User-Agent': 'Mozilla/5.0'})
+    #                     response.raise_for_status()
+                        
+    #                     soup = BeautifulSoup(response.text, 'html.parser')
+                        
+    #                     # Try extracting page content or relevant metadata
+    #                     data = soup.find("meta", {"name": "description"})['content'] if soup.find("meta", {"name": "description"}) else ""
+    #                     if not data:
+    #                         data = soup.title.string if soup.title else ""
+                            
+    #                 except Exception as requests_error:
+    #                     logging.error(f"Requests fallback failed: {requests_error}")
+    #                     st.error("Failed to retrieve data from the provided URL.")
+    #                     return
+
+    #             if data:
+                    
+    #                 about_us_data = self.fetch_about_us_data()
+    #                 about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice, about_us_data)
+    #                 special_instructions = st.session_state.special_instructions or []
+
+    #                 # Extract job data and generate email
+    #                 st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
+    #                 for job in st.session_state.jobs:
+    #                     skills = job.get('skills', [])
+    #                     links = self.portfolio.query_links(skills)
+    #                     st.session_state.email = self.chain.write_mail_with_translation(
+    #                         st.session_state.model_choice, job, links, st.session_state.selected_language,
+    #                         st.session_state.full_name, st.session_state.designation, st.session_state.company_name,
+    #                         st.session_state.tone,about_us_data, special_instructions
+    #                     )
+    #                     st.session_state.email_generated = True
+    #                     logging.info("Email generated successfully for job.")
+    #             else:
+    #                 st.error("No relevant content found in the scraped data.")
+    #                 logging.warning("No usable data found from either WebBaseLoader or fallback methods.")
+
+    #         except Exception as e:
+    #             st.error(f"An error occurred: {e}")
+    #             logging.error(f"Error during email generation: {e}")
 
     def fetch_about_us_data(self):
         """Fetches and returns data from the About Us or LinkedIn profile URL."""
