@@ -1,6 +1,6 @@
-__import__('pysqlite3')
+# __import__('pysqlite3')
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
 import re
@@ -173,7 +173,6 @@ class ColdMailGenerator:
             st.error(f"Error loading config: {e}")
             return {}
 
-
     def feedback_portfolio_icon(self, extracted_data, original_data):
         if 'submitted' not in st.session_state:
             st.session_state.submitted = False
@@ -196,8 +195,6 @@ class ColdMailGenerator:
         elif st.session_state.feedback == "👍":
             self.button_feedback(extracted_data, original_data, "👍", "", False)
             
-
-    
     def button_feedback(self, extracted_data, original_data, feedback, detailed_feedback, visibility):
         button_feedback = st.button("Submit Feedback", disabled=visibility)
         if button_feedback:
@@ -211,8 +208,7 @@ class ColdMailGenerator:
                 self.portfolio.store_feedback(extracted_data, original_data, feedback, "")
                 st.success("Thanks for the positive feedback!")
             st.session_state.submitted = True
-            
-        
+               
     def add_instructions_input_box(self):
         st.subheader("Additional Instructions (Optional)")
         st.session_state.special_instructions = st.text_area("Provide any additional instructions what you are offering or key skills.",max_chars=250)
@@ -261,7 +257,6 @@ class ColdMailGenerator:
             st.session_state.selected_language = self.temp_language_choice
             self.process_cover_note_submission()
   
-
     def process_submission(self):
         with st.spinner("Generating the cold email..."):
             try:
@@ -300,6 +295,7 @@ class ColdMailGenerator:
                         return
 
                 if data:
+                    
                     about_us_data = self.fetch_about_us_data()
                     about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice, about_us_data)
                     special_instructions = st.session_state.special_instructions or []
@@ -312,7 +308,7 @@ class ColdMailGenerator:
                         st.session_state.email = self.chain.write_mail_with_translation(
                             st.session_state.model_choice, job, links, st.session_state.selected_language,
                             st.session_state.full_name, st.session_state.designation, st.session_state.company_name,
-                            about_us_data, special_instructions, st.session_state.tone
+                            st.session_state.tone,about_us_data, special_instructions
                         )
                         st.session_state.email_generated = True
                         logging.info("Email generated successfully for job.")
@@ -324,7 +320,6 @@ class ColdMailGenerator:
                 st.error(f"An error occurred: {e}")
                 logging.error(f"Error during email generation: {e}")
 
-    
     def fetch_about_us_data(self):
         """Fetches and returns data from the About Us or LinkedIn profile URL."""
         if st.session_state.aboutus_url_valid:
@@ -375,8 +370,7 @@ class ColdMailGenerator:
     #         loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
     #         return clean_text(loader_about_us.load().pop().page_content)
     #     return "" #[]
-    
-    
+      
     def display_generated_email(self):
         """Display the generated email if it exists in session state."""
         if st.session_state.get("email_generated", False):
@@ -406,17 +400,20 @@ class ColdMailGenerator:
             try:
                 about_us_data = self.fetch_about_us_data() + st.session_state.special_instructions
                 about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice,about_us_data)
-
+                if st.session_state.status == "success":
+                    tech_stack=self.portfolio.get_all_techstack()
+                else:
+                    tech_stack=None
                 if st.session_state.jobs:
                     for job in st.session_state.jobs:
                         st.session_state.cover_note = self.chain.write_cover_note(
                             st.session_state.model_choice, st.session_state.full_name, st.session_state.designation,
-                            st.session_state.company_name, about_us_data, st.session_state.selected_language, st.session_state.tone, job
+                            st.session_state.company_name, about_us_data, st.session_state.selected_language, st.session_state.tone, job, tech_stack
                         )
                 else:
                     st.session_state.cover_note = self.chain.write_cover_note(
                         st.session_state.model_choice, st.session_state.full_name, st.session_state.designation,
-                        st.session_state.company_name, about_us_data, st.session_state.selected_language, st.session_state.tone
+                        st.session_state.company_name, about_us_data, st.session_state.selected_language, st.session_state.tone,None,tech_stack
                     )
                 st.session_state.cover_note_generated = True
                 logging.info("Cover note generated successfully.")

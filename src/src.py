@@ -73,24 +73,28 @@ class EmailGeneratorApp:
         st.subheader("Experience & Qualifications", anchor=False)
 
         st.write("""        
-        - 4+ Years experience extracting actionable insights from data 
-        - Strong hands-on experience and knowledge in Python and Excel
-        - Good understanding of statistical principles and their respective applications
-        - Excellent team-player and displaying a strong sense of initiative on tasks"""
-        )
+        - 4+ years of experience in developing and deploying NLP and GenAI solutions
+        - Proficient in advanced Python programming, including TensorFlow, PyTorch, and SQL for data engineering and analysis
+        - Deep understanding of NLP, LLMs, and model deployment on cloud platforms (AWS, Azure)
+        - Strong knowledge in MLOps, including CI/CD, Docker, and Kubernetes for scalable deployments
+        - Excellent team collaborator with a proactive approach to solving complex AI challenges
+        """)
 
-
-        #SKILLS
+        # SKILLS
         st.write("\n")
-        st. subheader("Hard Skills", anchor=False)
+        st.subheader("Core Technical Skills", anchor=False)
         st.write(
         """
-        - Programming: Python (Scikit-learn, Pandas), SQL, VBA
-        - Data Visualization: PowerBi, MS Excel, Plotly
-        - Modeling: Logistic regression, linear regression, decision trees
-        - Databases: Postgres, MongoDB, MySQL
+        - **Programming**: Python (Scikit-learn, TensorFlow, PyTorch, Pandas), SQL, R
+        - **Generative AI**: NLP, LLMs (GPT-4, BERT, Claude, Llama, Gemini)
+        - **Data Engineering**: ETL pipelines, data wrangling, data cleaning, real-time/batch data processing
+        - **Data Visualization**: Power BI, Tableau, Plotly, Matplotlib
+        - **Modeling Techniques**: Neural networks, transformers, logistic regression, clustering
+        - **Databases**: MS SQL Server, Postgres, MongoDB
+        - **Deployment**: MLOps (CI/CD), Docker, Kubernetes, cloud deployment on AWS and Azure
         """
         )
+
 
 
     def display_user_type_selection(self):

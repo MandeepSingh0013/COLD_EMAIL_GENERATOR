@@ -96,7 +96,7 @@ class Chain:
         wait=wait_exponential(multiplier=0.1, min=0.2, max=60),  # Exponential backoff starting at 200ms
         retry=retry_if_exception_type(Exception)  # Retry only on rate limit error (429)
     )
-    def write_cover_note(self, model_name, full_name, designation, company_name, about_us_text,target_language,tone,job=None):
+    def write_cover_note(self, model_name, full_name, designation, company_name, about_us_text,target_language,tone,job,tech_stack):
         llm = self.get_model(model_name)  # Get the LLM based on the selection
         cover_note_prompt=self.load_config()
         if cover_note_prompt["USER_ROLE"]=="Company Representative":
@@ -142,7 +142,8 @@ class Chain:
                 "about_us_text": about_us_text,
                 "job_description_section": job,
                 "target_language": target_language,
-                "tone": tone
+                "tone": tone,
+                "techstack_text":tech_stack
             
             })
             logging.info("Cover note generated successfully.")
@@ -228,7 +229,8 @@ class Chain:
                 "full_name": full_name,
                 "designation": designation,
                 "company_name": company_name,
-                "tone": tone 
+                "tone": tone,
+        
             })
             return res.content
         except Exception as e:

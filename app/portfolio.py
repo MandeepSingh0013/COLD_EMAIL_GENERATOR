@@ -66,9 +66,15 @@ class Portfolio:
             metadatas={"feedback": feedback, "comments": detailed_feedback, "extracted_data": extracted_data},
             ids=[str(uuid.uuid4())]
         )
+    def get_all_techstack(self):
+        # Retrieve all documents in the collection
+        all_documents = self.collection.get()['documents']
+        return all_documents
+
     
     def query_links(self,skills):
         return self.collection.query(query_texts=skills,n_results=2).get('metadatas',[])
+    
     
     # Fetch feedback data for fine-tuning
     
