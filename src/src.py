@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 
 # Configure Streamlit page
-st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")
+st.set_page_config(layout="wide", page_title="Smart Cold Email Generator", page_icon="📧")
 
 # Constants
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'app', 'config.json')
@@ -143,7 +143,7 @@ class EmailGeneratorApp:
                 app = ColdMailGenerator()
                 app.run()
             except Exception as e:
-                st.error("An error occurred while loading the Cold Email Generator.",e)
+                st.error("An error occurred while loading the Cold Email Generator.")
                 logging.error("Error in coldEmail function: %s", e)
     
     def email_app(self):

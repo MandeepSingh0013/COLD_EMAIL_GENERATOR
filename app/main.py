@@ -464,5 +464,5 @@ class ColdMailGenerator:
                 st.error("Enter Feedback")
 if __name__ == "__main__":
     app = ColdMailGenerator()
-    st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")
+    st.set_page_config(layout="wide", page_title="Smart Cold Email Generator", page_icon="📧")
     app.run()
