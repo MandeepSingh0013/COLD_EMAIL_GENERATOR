@@ -447,8 +447,7 @@ class ColdMailGenerator:
                     regenerated_email=EmailRefinerApp()
                     regenerated_email=regenerated_email.refine_email(st.session_state.email,st.session_state.mail_feedback,st.session_state.selected_language)
                     st.session_state.email=regenerated_email
-                    # st.rerun()
-                st.rerun()
+                    st.rerun()
             else:
                 st.error("Enter Feedback")
     def cover_note_feedback(self):
@@ -460,7 +459,7 @@ class ColdMailGenerator:
                     regenerated_note=EmailRefinerApp()
                     regenerated_note=regenerated_note.refine_cover_note(st.session_state.cover_note,st.session_state.note_feedback,st.session_state.selected_language)
                     st.session_state.cover_note=regenerated_note
-                st.rerun()
+                    st.rerun()
             else:
                 st.error("Enter Feedback")
 if __name__ == "__main__":
