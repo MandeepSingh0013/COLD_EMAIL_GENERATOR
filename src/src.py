@@ -143,7 +143,7 @@ class EmailGeneratorApp:
                 app = ColdMailGenerator()
                 app.run()
             except Exception as e:
-                st.error("An error occurred while loading the Cold Email Generator.{e}")
+                st.error("An error occurred while loading the Cold Email Generator.",e)
                 logging.error("Error in coldEmail function: %s", e)
     
     def email_app(self):
