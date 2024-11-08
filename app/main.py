@@ -333,69 +333,6 @@ class ColdMailGenerator:
                 logging.error(f"Error during email generation: {e}")
 
     
-    # def process_submission(self):
-    #     with st.spinner("Generating the cold email..."):
-    #         try:
-    #             # Attempt to load data using WebBaseLoader
-    #             data = None
-    #             try:
-    #                 loader = WebBaseLoader([st.session_state.company_url])
-    #                 scraped_data = loader.load().pop() if loader else None
-
-    #                 # Check for page_content or fallback to description/title in metadata
-    #                 if scraped_data:
-    #                     data = clean_text(scraped_data.page_content) if hasattr(scraped_data, 'page_content') and scraped_data.page_content else None
-    #                     if not data:
-    #                         # Attempt to get data from metadata fields
-    #                         metadata = scraped_data.metadata
-    #                         data = metadata.get("description", "") or metadata.get("title", "")
-    #             except Exception as loader_error:
-    #                 logging.warning(f"WebBaseLoader failed: {loader_error}")
-                
-    #             # Fallback to BeautifulSoup scraping if WebBaseLoader didn't work or data is empty
-    #             if not data:
-    #                 try:
-    #                     response = requests.get(st.session_state.company_url, headers={'User-Agent': 'Mozilla/5.0'})
-    #                     response.raise_for_status()
-                        
-    #                     soup = BeautifulSoup(response.text, 'html.parser')
-                        
-    #                     # Try extracting page content or relevant metadata
-    #                     data = soup.find("meta", {"name": "description"})['content'] if soup.find("meta", {"name": "description"}) else ""
-    #                     if not data:
-    #                         data = soup.title.string if soup.title else ""
-                            
-    #                 except Exception as requests_error:
-    #                     logging.error(f"Requests fallback failed: {requests_error}")
-    #                     st.error("Failed to retrieve data from the provided URL.")
-    #                     return
-
-    #             if data:
-                    
-    #                 about_us_data = self.fetch_about_us_data()
-    #                 about_us_data = self.chain.summarize_and_get_links(st.session_state.model_choice, about_us_data)
-    #                 special_instructions = st.session_state.special_instructions or []
-
-    #                 # Extract job data and generate email
-    #                 st.session_state.jobs = self.chain.extract_jobs(st.session_state.model_choice, data)
-    #                 for job in st.session_state.jobs:
-    #                     skills = job.get('skills', [])
-    #                     links = self.portfolio.query_links(skills)
-    #                     st.session_state.email = self.chain.write_mail_with_translation(
-    #                         st.session_state.model_choice, job, links, st.session_state.selected_language,
-    #                         st.session_state.full_name, st.session_state.designation, st.session_state.company_name,
-    #                         st.session_state.tone,about_us_data, special_instructions
-    #                     )
-    #                     st.session_state.email_generated = True
-    #                     logging.info("Email generated successfully for job.")
-    #             else:
-    #                 st.error("No relevant content found in the scraped data.")
-    #                 logging.warning("No usable data found from either WebBaseLoader or fallback methods.")
-
-    #         except Exception as e:
-    #             st.error(f"An error occurred: {e}")
-    #             logging.error(f"Error during email generation: {e}")
-
     def fetch_about_us_data(self):
         """Fetches and returns data from the About Us or LinkedIn profile URL."""
         if st.session_state.aboutus_url_valid:
@@ -440,13 +377,7 @@ class ColdMailGenerator:
             logging.error(f"Failed to retrieve LinkedIn profile data: {e}")
             return ""
 
-    # def fetch_about_us_data(self):
-    #     """Fetches and returns the About Us data if a valid URL is provided."""
-    #     if st.session_state.aboutus_url_valid:
-    #         loader_about_us = WebBaseLoader([st.session_state.aboutus_url])
-    #         return clean_text(loader_about_us.load().pop().page_content)
-    #     return "" #[]
-      
+  
     def display_generated_email(self):
         """Display the generated email if it exists in session state."""
         if st.session_state.get("email_generated", False):
@@ -516,7 +447,8 @@ class ColdMailGenerator:
                     regenerated_email=EmailRefinerApp()
                     regenerated_email=regenerated_email.refine_email(st.session_state.email,st.session_state.mail_feedback,st.session_state.selected_language)
                     st.session_state.email=regenerated_email
-                    st.rerun()
+                    # st.rerun()
+                st.rerun()
             else:
                 st.error("Enter Feedback")
     def cover_note_feedback(self):
@@ -528,7 +460,7 @@ class ColdMailGenerator:
                     regenerated_note=EmailRefinerApp()
                     regenerated_note=regenerated_note.refine_cover_note(st.session_state.cover_note,st.session_state.note_feedback,st.session_state.selected_language)
                     st.session_state.cover_note=regenerated_note
-                    st.rerun()
+                st.rerun()
             else:
                 st.error("Enter Feedback")
 if __name__ == "__main__":
