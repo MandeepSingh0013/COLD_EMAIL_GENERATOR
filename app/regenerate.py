@@ -43,8 +43,8 @@ class EmailRefinerApp:
             Feedback provided by the user for improvement:
             {feedback}
 
-            Using the feedback, refine the existing email to enhance clarity, relevance, and impact while preserving the original structure, tone, and key points. Avoid adding new information unless explicitly requested in the feedback. Focus on emphasizing your company’s expertise, aligning your message more closely with the client's needs, and making improvements to any areas specifically noted in the feedback.
-
+            Using the feedback, refine the existing email to enhance clarity,concise, relevance, and impact while preserving the original structure, tone, and key points. Avoid adding new information unless explicitly requested in the feedback. Focus on emphasizing your company’s expertise, aligning your message more closely with the client's needs, and making improvements to any areas specifically noted in the feedback.
+            Please ensure that the final email retains all the original details while incorporating the necessary improvements based on the feedback
             Maintain Quality.
 
             ### Improved Email (in English and {target_language}):
@@ -82,7 +82,7 @@ class EmailRefinerApp:
             Feedback provided by the user for improvement:
             {feedback}
 
-            Maintain Quality. Please ensure that the final cover note retains all the original details while incorporating the necessary improvements based on the feedback provided. Make the cover note compelling and professional.
+            Maintain Quality. Please ensure that the final cover note retains all the original details while incorporating the necessary improvements based on the feedback provided. Make the cover note compelling and professional and concise.
 
             ### Improved Cover Note (in English and {target_language}):
             """ ])
