@@ -15,6 +15,6 @@ PyPDF2
 python-docx
 openpyxl
 email_validator
-pyrebase4
+pyrebase4==4.8.0
 openai
 pydantic>=2.0
